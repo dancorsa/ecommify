@@ -17,18 +17,16 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <Navbar />
-      <main style={{ padding: '1rem 2rem' }}>
-        <Routes>
-          <Route path="/" element={<Navigate to="/catalog" replace />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/catalog" element={<Catalog />} />
-          <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/seller/inventory" element={<SellerInventory />} />
-        </Routes>
-      </main>
+      <Routes>
+        <Route path="/" element={<Navigate to="/catalog" replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/catalog" element={<Catalog />} />
+        <Route path="/product/:id" element={<ProductDetail />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/seller/inventory" element={<SellerInventory />} />
+      </Routes>
     </BrowserRouter>
   </React.StrictMode>
 );

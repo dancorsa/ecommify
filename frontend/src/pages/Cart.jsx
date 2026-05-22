@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 export default function Cart() {
   const [cart, setCart] = useState([]);
@@ -19,62 +19,105 @@ export default function Cart() {
     const updated = cart.map(i => i.id === id ? { ...i, qty: newQty } : i);
     setCart(updated);
     localStorage.setItem('cart', JSON.stringify(updated));
+    window.dispatchEvent(new Event('cartUpdate'));
   }
 
   function removeItem(id) {
     const updated = cart.filter(i => i.id !== id);
     setCart(updated);
     localStorage.setItem('cart', JSON.stringify(updated));
+    window.dispatchEvent(new Event('cartUpdate'));
   }
 
-  const subtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const tax = subtotal * 0.19;
   const total = subtotal + tax;
 
+  if (cart.length === 0) {
+    return (
+      <div className="page-wrapper">
+        <h1 className="page-title" style={{ marginBottom: '2rem' }}>Carrito de compras</h1>
+        <div className="empty-state">
+          <div className="empty-icon">🛒</div>
+          <div className="empty-title">Tu carrito está vacío</div>
+          <div className="empty-desc">Agrega productos desde el catálogo para comenzar</div>
+          <Link to="/catalog" className="btn btn-primary">Ver catálogo</Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ maxWidth: 700, margin: '0 auto' }}>
-      <h2>Carrito de compras</h2>
-      {cart.length === 0 ? (
-        <p>Tu carrito está vacío. <span style={{ color: '#e94560', cursor: 'pointer' }} onClick={() => navigate('/catalog')}>Ir al catálogo →</span></p>
-      ) : (
-        <>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+    <div className="page-wrapper">
+      <div className="page-header">
+        <h1 className="page-title">Carrito de compras</h1>
+        <p className="page-subtitle">{cart.length} producto{cart.length !== 1 ? 's' : ''}</p>
+      </div>
+
+      <div className="cart-layout">
+        <div className="cart-table-wrap">
+          <table className="cart-table">
             <thead>
-              <tr style={{ borderBottom: '2px solid #ddd' }}>
-                <th style={th}>Producto</th><th style={th}>Precio</th><th style={th}>Cantidad</th><th style={th}>Subtotal</th><th style={th}></th>
+              <tr>
+                <th>Producto</th>
+                <th>Precio unit.</th>
+                <th>Cantidad</th>
+                <th>Subtotal</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {cart.map(item => (
-                <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={td}>{item.name}</td>
-                  <td style={td}>${item.price.toLocaleString()}</td>
-                  <td style={td}>
-                    <button onClick={() => updateQty(item.id, item.qty - 1)} style={qtyBtn}>-</button>
-                    <span style={{ margin: '0 0.5rem' }}>{item.qty}</span>
-                    <button onClick={() => updateQty(item.id, item.qty + 1)} style={qtyBtn}>+</button>
+                <tr key={item.id}>
+                  <td>
+                    <Link to={`/product/${item.id}`} className="cart-item-name" style={{ color: 'var(--text)' }}>
+                      {item.name}
+                    </Link>
                   </td>
-                  <td style={td}>${(item.price * item.qty).toLocaleString()}</td>
-                  <td style={td}><button onClick={() => removeItem(item.id)} style={removeBtn}>✕</button></td>
+                  <td style={{ color: 'var(--text-muted)' }}>${item.price.toLocaleString('es-CO')}</td>
+                  <td>
+                    <div className="cart-qty-controls">
+                      <button className="cart-qty-btn" onClick={() => updateQty(item.id, item.qty - 1)}>−</button>
+                      <div className="cart-qty-val">{item.qty}</div>
+                      <button className="cart-qty-btn" onClick={() => updateQty(item.id, item.qty + 1)}>+</button>
+                    </div>
+                  </td>
+                  <td style={{ fontWeight: 700 }}>${(item.price * item.qty).toLocaleString('es-CO')}</td>
+                  <td>
+                    <button className="cart-remove" onClick={() => removeItem(item.id)} title="Eliminar">✕</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
 
-          <div style={{ textAlign: 'right', marginTop: '1rem' }}>
-            <p>Subtotal: ${subtotal.toLocaleString()}</p>
-            <p>IVA (19%): ${tax.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
-            <p style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>Total: ${total.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
-            <button onClick={() => navigate('/checkout')} style={checkoutBtn}>Proceder al checkout →</button>
+        <div className="cart-summary">
+          <div className="summary-title">Resumen del pedido</div>
+          <div className="summary-row">
+            <span>Subtotal</span>
+            <span>${subtotal.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</span>
           </div>
-        </>
-      )}
+          <div className="summary-row">
+            <span>IVA (19%)</span>
+            <span>${tax.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</span>
+          </div>
+          <div className="summary-row total">
+            <span>Total</span>
+            <span style={{ color: 'var(--accent)' }}>${total.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</span>
+          </div>
+          <button
+            className="btn btn-primary btn-full btn-lg"
+            style={{ marginTop: '1.25rem' }}
+            onClick={() => navigate('/checkout')}
+          >
+            Ir al checkout →
+          </button>
+          <Link to="/catalog" className="btn btn-ghost btn-full" style={{ marginTop: '0.5rem', justifyContent: 'center' }}>
+            ← Seguir comprando
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
-
-const th = { padding: '0.5rem', textAlign: 'left', color: '#555' };
-const td = { padding: '0.75rem 0.5rem' };
-const qtyBtn = { background: '#eee', border: 'none', padding: '0.2rem 0.5rem', cursor: 'pointer', borderRadius: 3 };
-const removeBtn = { background: 'none', border: 'none', color: '#e94560', cursor: 'pointer', fontSize: '1rem' };
-const checkoutBtn = { padding: '0.6rem 1.5rem', background: '#e94560', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: '1rem', marginTop: '0.5rem' };

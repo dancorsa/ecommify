@@ -5,6 +5,7 @@ import api from '../api';
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   function handleChange(e) {
@@ -14,6 +15,7 @@ export default function Login() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    setLoading(true);
     try {
       const { data } = await api.post('/auth/login', form);
       localStorage.setItem('token', data.token);
@@ -21,24 +23,55 @@ export default function Login() {
       navigate('/catalog');
     } catch (err) {
       setError(err.response?.data?.error || 'Error al iniciar sesión');
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <div style={containerStyle}>
-      <h2>Iniciar sesión</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleSubmit} style={formStyle}>
-        <input name="email" type="email" placeholder="Correo electrónico" value={form.email} onChange={handleChange} required style={inputStyle} />
-        <input name="password" type="password" placeholder="Contraseña" value={form.password} onChange={handleChange} required style={inputStyle} />
-        <button type="submit" style={btnStyle}>Ingresar</button>
-      </form>
-      <p>¿No tienes cuenta? <Link to="/register">Regístrate</Link></p>
+    <div className="page-center">
+      <div className="auth-card">
+        <div className="auth-header">
+          <div className="auth-logo">🛍️ Ecommify</div>
+          <div className="auth-subtitle">Tu marketplace de confianza</div>
+        </div>
+
+        <h2 className="auth-title">Iniciar sesión</h2>
+
+        {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}>⚠️ {error}</div>}
+
+        <form onSubmit={handleSubmit} className="auth-form">
+          <div className="form-group">
+            <label className="form-label">Correo electrónico</label>
+            <input
+              name="email" type="email" placeholder="tu@correo.com"
+              value={form.email} onChange={handleChange}
+              required className="input"
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Contraseña</label>
+            <input
+              name="password" type="password" placeholder="••••••••"
+              value={form.password} onChange={handleChange}
+              required className="input"
+            />
+          </div>
+          <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={loading} style={{ marginTop: '0.5rem' }}>
+            {loading ? 'Ingresando...' : 'Ingresar'}
+          </button>
+        </form>
+
+        <p className="auth-footer">
+          ¿No tienes cuenta?{' '}
+          <Link to="/register" style={{ fontWeight: 600 }}>Regístrate gratis</Link>
+        </p>
+
+        <div className="divider" />
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+          Demo: ana@example.com / Test1234!
+        </p>
+      </div>
     </div>
   );
 }
-
-const containerStyle = { maxWidth: 400, margin: '2rem auto' };
-const formStyle = { display: 'flex', flexDirection: 'column', gap: '0.75rem' };
-const inputStyle = { padding: '0.5rem', borderRadius: 4, border: '1px solid #ccc', fontSize: '1rem' };
-const btnStyle = { padding: '0.6rem', background: '#e94560', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: '1rem' };
