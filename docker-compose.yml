@@ -11,8 +11,14 @@ services:
       POSTGRES_PASSWORD: ecommify2024
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql
-      - ./database/postgres/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+      - ./database/postgresql/schema/00_base_schema.sql:/docker-entrypoint-initdb.d/00-base-schema.sql
+      - ./database/postgresql/schema/01_extensions.sql:/docker-entrypoint-initdb.d/01-extensions.sql
+      - ./database/postgresql/schema/02_advanced_types.sql:/docker-entrypoint-initdb.d/02-advanced-types.sql
+      - ./database/postgresql/schema/03_partitioning.sql:/docker-entrypoint-initdb.d/03-partitioning.sql
+      - ./database/postgresql/schema/04_materialized_views.sql:/docker-entrypoint-initdb.d/04-materialized-views.sql
+      - ./database/postgresql/schema/05_triggers.sql:/docker-entrypoint-initdb.d/05-triggers.sql
+      - ./database/postgresql/schema/06_maintenance_jobs.sql:/docker-entrypoint-initdb.d/06-maintenance-jobs.sql
+      - ./database/postgresql/seed_data/01_seed.sql:/docker-entrypoint-initdb.d/07-seed.sql
     ports:
       - "5432:5432"
     networks:
@@ -33,7 +39,7 @@ services:
       MONGO_INITDB_DATABASE: ecommify
     volumes:
       - mongo_data:/data/db
-      - ./database/mongo/seed.js:/docker-entrypoint-initdb.d/seed.js
+      - ./database/mongodb/schema/seed.js:/docker-entrypoint-initdb.d/seed.js
     ports:
       - "27017:27017"
     networks:

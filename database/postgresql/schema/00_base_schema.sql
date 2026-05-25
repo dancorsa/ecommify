@@ -1,5 +1,12 @@
 -- ============================================================
--- Ecommify – PostgreSQL schema (datos transaccionales)
+-- Archivo   : 00_base_schema.sql
+-- Descripción: Esquema base de PostgreSQL — copia de referencia de
+--              database/postgres/init.sql. NO modificar este archivo;
+--              las extensiones y tipos avanzados van en 01_* y 02_*.
+-- Autores   : David Ricardo Grandas Cárdenas
+--             Danilo Andrés Cortés Saavedra
+--             Edisson Steven Bustos Galeano
+-- Fecha     : 2026-05-21
 -- ============================================================
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";

@@ -1,0 +1,332 @@
+{
+  "_meta": {
+    "proyecto": "Ecommify — Plataforma E-commerce Multivendedor",
+    "universidad": "Universidad de La Sabana — Maestría en Arquitectura de Software",
+    "autores": [
+      "David Ricardo Grandas Cárdenas",
+      "Danilo Andrés Cortés Saavedra",
+      "Edisson Steven Bustos Galeano"
+    ],
+    "fecha": "2026-05-21",
+    "descripcion": "Schema formal de las colecciones MongoDB de Ecommify con justificación técnica, índices y validación $jsonSchema.",
+    "motor": "MongoDB 7.x",
+    "base_de_datos": "ecommify"
+  },
+
+  "collections": [
+    {
+      "collection": "products",
+      "description": "Catálogo completo de productos tecnológicos. Almacena el perfil rico de cada producto (descripción larga, imágenes, especificaciones técnicas variables) que el frontend consulta en tiempo real.",
+      "why_mongodb_not_postgres": "Las especificaciones técnicas varían radicalmente por categoría (RAM/procesador en laptops vs. resolución/panel en monitores vs. batería/ANC en audio). Modelar esto en PostgreSQL requeriría una tabla EAV (Entity-Attribute-Value) ineficiente o decenas de columnas nullable. JSONB sería una alternativa válida en PG, pero MongoDB ofrece índices de texto nativo ($text), aggregation pipeline para facets de búsqueda, y un modelo de documento que escala horizontalmente sin JOIN. El catálogo es de lectura intensiva (>95% reads) — MongoDB con replica set y read preference secondary distribuye esa carga de forma nativa.",
+      "indexes": [
+        {
+          "fields": { "id": 1 },
+          "options": { "unique": true, "name": "idx_id_unique" },
+          "justification": "Clave de negocio que sincroniza con products.id en PostgreSQL. Unique garantiza consistencia inter-sistema."
+        },
+        {
+          "fields": { "category": 1 },
+          "options": { "name": "idx_category" },
+          "justification": "Filtro de catálogo más frecuente: GET /api/catalog?category=laptops."
+        },
+        {
+          "fields": { "price": 1 },
+          "options": { "name": "idx_price" },
+          "justification": "Soporte para filtros de rango: minPrice/maxPrice. BTree permite range scans eficientes."
+        },
+        {
+          "fields": { "rating": -1 },
+          "options": { "name": "idx_rating_desc" },
+          "justification": "Ordenamiento por rating descendente para la página principal de catálogo."
+        },
+        {
+          "fields": { "category": 1, "price": 1, "rating": -1 },
+          "options": { "name": "idx_catalog_filters" },
+          "justification": "Índice compuesto que cubre el 80% de queries del catálogo (filtro por categoría + rango precio + orden rating) en un solo escaneo de índice (index-only scan)."
+        },
+        {
+          "fields": { "name": "text", "description": "text" },
+          "options": { "name": "idx_text_search", "default_language": "spanish" },
+          "justification": "Búsqueda full-text nativa en español. Complementa pg_trgm de PostgreSQL: PG maneja tolerancia a errores tipográficos, MongoDB maneja relevancia y stemming."
+        }
+      ],
+      "sample_document": {
+        "id": "prod-002",
+        "name": "Laptop Dell Inspiron 15",
+        "price": 3499.90,
+        "category": "laptops",
+        "rating": 4.3,
+        "stock": 8,
+        "sellerId": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+        "description": "Laptop Dell Inspiron 15 con Intel Core i5 de 12ª generación, 16GB RAM, SSD 512GB y pantalla Full HD de 15.6\".",
+        "images": ["https://picsum.photos/seed/dell-inspiron/400/300"],
+        "specs": {
+          "processor": "Intel Core i5-1235U",
+          "ram": "16GB",
+          "storage": "512GB SSD",
+          "display": "15.6\" FHD",
+          "os": "Windows 11"
+        },
+        "tags": ["laptop", "dell", "windows", "i5", "ssd"]
+      },
+      "schema_validation": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "required": ["id", "name", "price", "category", "stock", "sellerId"],
+          "additionalProperties": true,
+          "properties": {
+            "id": {
+              "bsonType": "string",
+              "description": "Clave de negocio — debe coincidir con products.id en PostgreSQL"
+            },
+            "name": {
+              "bsonType": "string",
+              "minLength": 3,
+              "maxLength": 255,
+              "description": "Nombre del producto"
+            },
+            "price": {
+              "bsonType": "double",
+              "minimum": 0.01,
+              "description": "Precio en USD — debe ser positivo"
+            },
+            "category": {
+              "bsonType": "string",
+              "enum": ["smartphones", "laptops", "tablets", "audio", "wearables", "peripherals", "monitors", "networking", "gaming"],
+              "description": "Categoría del producto"
+            },
+            "rating": {
+              "bsonType": "double",
+              "minimum": 0,
+              "maximum": 5,
+              "description": "Rating promedio de 0 a 5"
+            },
+            "stock": {
+              "bsonType": "int",
+              "minimum": 0,
+              "description": "Stock disponible — sincronizado con PostgreSQL via event"
+            },
+            "sellerId": {
+              "bsonType": "string",
+              "description": "UUID del vendedor — referencia a sellers.id en PostgreSQL"
+            },
+            "images": {
+              "bsonType": "array",
+              "items": { "bsonType": "string" },
+              "description": "URLs de imágenes del producto"
+            },
+            "specs": {
+              "bsonType": "object",
+              "description": "Especificaciones técnicas heterogéneas según categoría"
+            },
+            "tags": {
+              "bsonType": "array",
+              "items": { "bsonType": "string" },
+              "description": "Etiquetas para búsqueda y filtrado"
+            }
+          }
+        }
+      }
+    },
+
+    {
+      "collection": "reviews",
+      "description": "Reseñas de productos escritas por clientes verificados. Almacenamiento documental permite consultas ricas (agrupar por producto, calcular promedio) sin JOINs costosos.",
+      "why_mongodb_not_postgres": "Las reseñas tienen estructura semi-flexible (algunos usuarios agregan fotos adjuntas, respuestas de vendedores, votos de utilidad). Más importante: el patrón de acceso es siempre por producto (GET /reviews/product/:id) — en MongoDB el índice sobre productId cubre el 100% de las queries sin JOIN. La aggregation pipeline calcula $avg del score en el servidor. En PostgreSQL requeriría una tabla separada con FK + JOIN + AVG() en cada consulta del catálogo.",
+      "indexes": [
+        {
+          "fields": { "productId": 1 },
+          "options": { "name": "idx_productId" },
+          "justification": "Query principal: todas las reseñas de un producto. Cubre la ruta GET /api/reviews/product/:productId."
+        },
+        {
+          "fields": { "userId": 1, "productId": 1 },
+          "options": { "unique": true, "name": "idx_user_product_unique" },
+          "justification": "Garantiza una sola reseña por usuario por producto (regla de negocio). Equivalente a UNIQUE(userId, productId) en SQL."
+        },
+        {
+          "fields": { "score": -1 },
+          "options": { "name": "idx_score_desc" },
+          "justification": "Permite filtrar las mejores reseñas (score >= 4) o las peores (score <= 2) eficientemente."
+        },
+        {
+          "fields": { "createdAt": -1 },
+          "options": { "name": "idx_created_desc" },
+          "justification": "Orden cronológico inverso para mostrar reseñas recientes primero."
+        }
+      ],
+      "sample_document": {
+        "userId": "c2aafe11-be2d-6a1a-dd8f-8dd1cf502c33",
+        "productId": "prod-004",
+        "score": 5,
+        "comment": "La cancelación de ruido es espectacular. Vale cada centavo.",
+        "verified": true,
+        "helpfulVotes": 23,
+        "sellerResponse": null,
+        "createdAt": "2025-02-01T00:00:00.000Z"
+      },
+      "schema_validation": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "required": ["userId", "productId", "score", "createdAt"],
+          "properties": {
+            "userId": { "bsonType": "string" },
+            "productId": { "bsonType": "string" },
+            "score": {
+              "bsonType": "int",
+              "minimum": 1,
+              "maximum": 5,
+              "description": "Puntuación de 1 a 5 (enteros únicamente)"
+            },
+            "comment": {
+              "bsonType": "string",
+              "maxLength": 2000
+            },
+            "verified": {
+              "bsonType": "bool",
+              "description": "true si el usuario compró el producto (verificado via PostgreSQL)"
+            },
+            "helpfulVotes": {
+              "bsonType": "int",
+              "minimum": 0
+            },
+            "createdAt": {
+              "bsonType": "string",
+              "description": "ISO 8601 timestamp"
+            }
+          }
+        }
+      }
+    },
+
+    {
+      "collection": "user_behavior",
+      "description": "Eventos de comportamiento de usuario en tiempo real: vistas de producto, búsquedas, clics, add-to-cart. Datos efímeros con TTL de 30 días, usados para personalización y analytics.",
+      "why_mongodb_not_postgres": "Los eventos de comportamiento tienen volumen altísimo (miles/minuto en producción) y estructura variable (un 'search' tiene query/results_count, un 'product_view' tiene position/source). Insertar en PostgreSQL generaría contención en WAL y tabla enorme. MongoDB escala horizontalmente con sharding nativo sobre session_id. El TTL index elimina datos viejos automáticamente sin cron jobs. La colección nunca requiere JOINs — siempre se consulta por user_id o session_id.",
+      "indexes": [
+        {
+          "fields": { "created_at": 1 },
+          "options": {
+            "expireAfterSeconds": 2592000,
+            "name": "idx_ttl_30days"
+          },
+          "justification": "TTL index: MongoDB elimina automáticamente documentos con created_at > 30 días. Equivale a un cron de purga diario sin overhead. 30 días es suficiente para personalización; datos más antiguos van a analytics_snapshots."
+        },
+        {
+          "fields": { "user_id": 1, "event_type": 1 },
+          "options": { "name": "idx_user_event" },
+          "justification": "Consultas de personalización: '¿qué productos vio este usuario en los últimos 30 días?'. Compuesto cubre tanto el filtro por usuario como el tipo de evento."
+        },
+        {
+          "fields": { "product_id": 1 },
+          "options": { "name": "idx_product" },
+          "justification": "Conteo de vistas por producto para el ranking de popularidad."
+        },
+        {
+          "fields": { "session_id": 1 },
+          "options": { "name": "idx_session" },
+          "justification": "Reconstrucción del journey del usuario dentro de una sesión (funnel analysis)."
+        }
+      ],
+      "sample_document": {
+        "session_id": "sess-abc123",
+        "user_id": "c2aafe11-be2d-6a1a-dd8f-8dd1cf502c33",
+        "event_type": "product_view",
+        "product_id": "prod-001",
+        "metadata": {
+          "source": "catalog",
+          "position": 1,
+          "search_query": null,
+          "time_on_page_sec": 45
+        },
+        "device": {
+          "type": "desktop",
+          "browser": "Chrome",
+          "os": "Windows"
+        },
+        "created_at": "2026-05-21T10:30:00.000Z"
+      },
+      "schema_validation": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "required": ["session_id", "event_type", "created_at"],
+          "properties": {
+            "session_id": { "bsonType": "string" },
+            "user_id": {
+              "bsonType": ["string", "null"],
+              "description": "null para usuarios anónimos"
+            },
+            "event_type": {
+              "bsonType": "string",
+              "enum": ["product_view", "search", "add_to_cart", "remove_from_cart", "checkout_start", "purchase", "review_submitted"]
+            },
+            "product_id": { "bsonType": ["string", "null"] },
+            "metadata": { "bsonType": "object" },
+            "device": { "bsonType": "object" },
+            "created_at": { "bsonType": "date" }
+          }
+        }
+      }
+    },
+
+    {
+      "collection": "analytics_snapshots",
+      "description": "Snapshots diarios/semanales de métricas de negocio pre-calculadas. Permiten mostrar dashboards históricos sin recalcular sobre datos transaccionales.",
+      "why_mongodb_not_postgres": "Los snapshots son documentos de escritura única (insert-only) con estructura variable según el tipo (daily_sales tiene dimensiones diferentes a weekly_cohort). En PostgreSQL requerirían tablas separadas por tipo o una columna JSONB con pérdida de tipado. MongoDB permite almacenar cada snapshot como un documento auto-descriptivo. La aggregation pipeline calcula los snapshots desde user_behavior y products en el mismo motor. TTL de 90 días mantiene el tamaño acotado.",
+      "indexes": [
+        {
+          "fields": { "snapshot_date": -1 },
+          "options": { "name": "idx_date_desc" },
+          "justification": "Query principal: snapshots del último N días ordenados por fecha reciente primero."
+        },
+        {
+          "fields": { "snapshot_type": 1, "snapshot_date": -1 },
+          "options": { "name": "idx_type_date" },
+          "justification": "Filtro compuesto: 'dame los últimos 30 snapshots de tipo weekly_cohort'. Evita collection scan."
+        },
+        {
+          "fields": { "snapshot_date": 1 },
+          "options": {
+            "expireAfterSeconds": 7776000,
+            "name": "idx_ttl_90days"
+          },
+          "justification": "TTL de 90 días para snapshots diarios. Los snapshots semanales/mensuales se mueven a almacenamiento frío antes del TTL."
+        }
+      ],
+      "sample_document": {
+        "snapshot_type": "daily_sales",
+        "snapshot_date": "2025-02-20T00:00:00.000Z",
+        "data": {
+          "total_orders": 2,
+          "total_revenue": 2199.80,
+          "avg_order_value": 1099.90,
+          "top_categories": [
+            { "category": "smartphones", "orders": 1, "revenue": 1299.90 },
+            { "category": "peripherals", "orders": 1, "revenue": 899.90 }
+          ],
+          "new_customers": 0,
+          "conversion_rate": 0.45
+        },
+        "generated_at": "2025-02-20T02:00:00.000Z"
+      },
+      "schema_validation": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "required": ["snapshot_type", "snapshot_date", "data", "generated_at"],
+          "properties": {
+            "snapshot_type": {
+              "bsonType": "string",
+              "enum": ["daily_sales", "weekly_cohort", "monthly_summary", "product_ranking"]
+            },
+            "snapshot_date": { "bsonType": "date" },
+            "data": {
+              "bsonType": "object",
+              "description": "Payload variable según snapshot_type"
+            },
+            "generated_at": { "bsonType": "date" }
+          }
+        }
+      }
+    }
+  ]
+}

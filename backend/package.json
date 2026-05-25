@@ -8,6 +8,8 @@
   },
   "scripts": {
     "test": "jest --forceExit",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --coverage --ci --forceExit",
     "test:watch": "jest --watch",
     "start": "node src/app.js",
     "dev": "nodemon src/app.js"
