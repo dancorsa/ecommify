@@ -1,0 +1,134 @@
+================================================================================
+  ECOMMIFY — Reporte de Ejecución de Pruebas con Cobertura
+  Fecha de ejecución : 2026-05-24
+  Comando            : npm run test:coverage
+  Entorno            : node:20-alpine (Docker)
+  Framework          : Jest 29.7.0
+================================================================================
+
+> backend@1.0.0 test:coverage
+> jest --coverage
+
+PASS tests/catalog/catalog.service.test.js (18.205 s)
+  CatalogService
+    HU-03: Búsqueda de productos
+      ✓ Given products and a price range, When filterProductsByPrice is called, Then it returns products within the range (98 ms)
+      ✓ Given products and a narrow price range, When filterProductsByPrice is called, Then products outside the range are excluded
+      ✓ Given products and a category, When filterProductsByCategory is called, Then it returns only products from that category (1 ms)
+      ✓ Given products and a minimum rating, When filterProductsByMinRating is called, Then it returns only products with rating >= minimum (1 ms)
+      ✓ Given products and combined filters, When applyAllFilters is called, Then it applies all 3 filters simultaneously (1 ms)
+      ✓ Given products and no filters, When applyAllFilters is called, Then it returns all products
+    HU-04: Detalle de producto
+      ✓ Given a product with stock 0, When isProductAvailable is called, Then it returns false (1 ms)
+      ✓ Given a product with stock 5, When isProductAvailable is called, Then it returns true
+      ✓ Given a product object, When formatProductSummary is called, Then it returns the required fields (2 ms)
+
+PASS tests/checkout/checkout.service.test.js (18.336 s)
+  CheckoutService
+    HU-06: Proceso de compra
+      ✓ Given a complete address, When validateShippingAddress is called, Then it returns { valid: true } (92 ms)
+      ✓ Given an address without city, When validateShippingAddress is called, Then it returns { valid: false, errors: ["city required"] } (1 ms)
+      ✓ Given payment method "credit_card", When validatePaymentMethod is called, Then it returns true
+      ✓ Given payment method "bitcoin", When validatePaymentMethod is called, Then it returns false (1 ms)
+      ✓ Given no arguments, When generateOrderNumber is called, Then it returns a string starting with "ORD-" (1 ms)
+      ✓ Given items and a shipping cost, When calculateOrderTotal is called, Then it returns the correct sum
+      ✓ Given items with sufficient stock, When processStockDecrement is called, Then it returns the decremented inventory (1 ms)
+      ✓ Given items with insufficient stock, When processStockDecrement is called, Then it throws without modifying inventory (123 ms)
+      ✓ Given a cart, address and payment, When buildOrderSummary is called, Then it returns an object with required fields (4 ms)
+      ✓ Given all valid payment methods, When validatePaymentMethod is called, Then it returns true for each (1 ms)
+
+PASS tests/inventory/inventory.service.test.js (18.807 s)
+  InventoryService
+    HU-08: Gestión de inventario por vendedor
+      ✓ Given a stock value of 10, When validateStockValue is called, Then it returns true (177 ms)
+      ✓ Given a stock value of -1, When validateStockValue is called, Then it returns false
+      ✓ Given a stock value of 0, When validateStockValue is called, Then it returns true (zero is valid) (1 ms)
+      ✓ Given a non-integer stock value (1.5), When validateStockValue is called, Then it returns false
+      ✓ Given stock is 0, When isOutOfStock is called, Then it returns true
+      ✓ Given stock is 1, When isOutOfStock is called, Then it returns false (1 ms)
+      ✓ Given currentStock=10 and newStock=25, When applyStockUpdate is called, Then it returns { updated: 25, delta: +15, isOutOfStock: false } (2 ms)
+      ✓ Given currentStock=5 and newStock=0, When applyStockUpdate is called, Then it returns { updated: 0, delta: -5, isOutOfStock: true } (1 ms)
+      ✓ Given product, user and stock values, When buildStockHistoryEntry is called, Then it returns an object with timestamp, userId, productId, oldStock, newStock (2 ms)
+      ✓ Given a seller who owns the product, When validateSellerOwnership is called, Then it returns true
+      ✓ Given a seller who does not own the product, When validateSellerOwnership is called, Then it returns false
+
+PASS tests/reviews/reviews.service.test.js (20.279 s)
+  ReviewsService
+    HU-07: Publicación de review de producto
+      ✓ Given a score of 4, When validateReviewScore is called, Then it returns true (216 ms)
+      ✓ Given a score of 0, When validateReviewScore is called, Then it returns false (1 ms)
+      ✓ Given a score of 6, When validateReviewScore is called, Then it returns false
+      ✓ Given a score of 3.5 (not an integer), When validateReviewScore is called, Then it returns false
+      ✓ Given empty purchase history, When canUserReview is called, Then it returns false (1 ms)
+      ✓ Given a confirmed purchase of the product, When canUserReview is called, Then it returns true
+      ✓ Given a purchase with status "pending", When canUserReview is called, Then it returns false (1 ms)
+      ✓ Given an existing review for the same user and product, When hasExistingReview is called, Then it returns true
+      ✓ Given no existing review for the user-product combination, When hasExistingReview is called, Then it returns false (1 ms)
+      ✓ Given reviews with scores [5, 4, 3], When calculateAverageRating is called, Then it returns 4.00 (1 ms)
+      ✓ Given an empty reviews array, When calculateAverageRating is called, Then it returns 0
+      ✓ Given user, product, score and comment, When buildReviewDocument is called, Then it returns a complete document (3 ms)
+
+PASS tests/cart/cart.service.test.js (20.245 s)
+  CartService
+    HU-05: Gestión del carrito de compras
+      ✓ Given 2 items with price and qty, When calculateSubtotal is called, Then it returns the correct sum (231 ms)
+      ✓ Given an empty cart, When calculateSubtotal is called, Then it returns 0 (1 ms)
+      ✓ Given a subtotal of 100 and 10% discount, When calculateDiscount is called, Then it returns 90 (1 ms)
+      ✓ Given subtotal, discounted amount, and tax rate, When calculateTotal is called, Then it returns the correct final value (2 ms)
+      ✓ Given requestedQty=5 and availableStock=2, When validateStockLimit is called, Then it throws StockError (105 ms)
+      ✓ Given requestedQty=1 and availableStock=5, When validateStockLimit is called, Then it does not throw (1 ms)
+      ✓ Given an empty cart and a product, When addItemToCart is called, Then the item is added correctly (2 ms)
+      ✓ Given a cart with 2 items, When removeItemFromCart is called, Then the correct item is removed (4 ms)
+      ✓ Given a cart with an item, When updateItemQuantity is called, Then the subtotal is recalculated correctly (1 ms)
+      ✓ Given a cart with an existing item, When addItemToCart is called again, Then qty accumulates
+      ✓ Given requestedQty > availableStock, When validateStockLimit is called, Then it throws a StockError instance (1 ms)
+
+PASS tests/auth/auth.service.test.js (23.194 s)
+  AuthService
+    HU-01: Registro de usuario
+      ✓ Given a valid email, When validateEmail is called, Then it returns true (118 ms)
+      ✓ Given an email without @, When validateEmail is called, Then it returns false
+      ✓ Given a strong password (>=8 chars, uppercase, number), When validatePasswordStrength is called, Then it returns true
+      ✓ Given a password without uppercase letters, When validatePasswordStrength is called, Then it returns false
+      ✓ Given a password shorter than 8 characters, When validatePasswordStrength is called, Then it returns false
+      ✓ Given a password without digits, When validatePasswordStrength is called, Then it returns false
+      ✓ Given a plaintext password, When hashPassword and verifyPassword are called, Then verifyPassword returns true (233 ms)
+      ✓ Given a wrong password, When verifyPassword is called, Then it returns false (208 ms)
+    HU-02: Login de usuario
+      ✓ Given a valid payload, When generateJWT is called, Then it returns a non-empty string (5 ms)
+      ✓ Given a valid token, When verifyJWT is called, Then it returns the correct payload (4 ms)
+      ✓ Given an invalid token, When verifyJWT is called, Then it returns null (1 ms)
+      ✓ Given 2 failed login attempts, When checkLoginAttempts is called, Then account is not blocked
+      ✓ Given 3 failed login attempts, When checkLoginAttempts is called, Then account is blocked for 5 minutes
+      ✓ Given 5 failed login attempts, When checkLoginAttempts is called, Then account is still blocked (1 ms)
+
+-----------------------|---------|----------|---------|---------|-------------------
+File                   | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
+-----------------------|---------|----------|---------|---------|-------------------
+All files              |    98.3 |    89.28 |     100 |     100 |
+ auth                  |   93.33 |     87.5 |     100 |     100 |
+  auth.service.js      |   93.33 |     87.5 |     100 |     100 | 17-28
+ cart                  |     100 |       75 |     100 |     100 |
+  cart.service.js      |     100 |       75 |     100 |     100 | 61-86
+ catalog               |     100 |     90.9 |     100 |     100 |
+  catalog.service.js   |     100 |     90.9 |     100 |     100 | 36
+ checkout              |     100 |    88.88 |     100 |     100 |
+  checkout.service.js  |     100 |    88.88 |     100 |     100 | 67
+ inventory             |     100 |      100 |     100 |     100 |
+  inventory.service.js |     100 |      100 |     100 |     100 |
+ reviews               |     100 |      100 |     100 |     100 |
+  reviews.service.js   |     100 |      100 |     100 |     100 |
+-----------------------|---------|----------|---------|---------|-------------------
+
+Test Suites : 6 passed, 6 total
+Tests       : 67 passed, 67 total
+Snapshots   : 0 total
+Time        : 28.796 s
+
+================================================================================
+  RESULTADO: TODAS LAS MÉTRICAS SUPERAN EL UMBRAL MÍNIMO DEL 75%
+  Statements : 98.30%  ✓  (umbral: 75%)
+  Branches   : 89.28%  ✓  (umbral: 75%)
+  Functions  : 100.00% ✓  (umbral: 75%)
+  Lines      : 100.00% ✓  (umbral: 75%)
+================================================================================

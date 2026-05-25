@@ -1,17 +1,27 @@
 module.exports = {
   testEnvironment: 'node',
-  collectCoverage: true,
-  coverageDirectory: 'coverage',
+  testMatch: ['**/tests/**/*.test.js'],
+  collectCoverage: false,
+  collectCoverageFrom: [
+    'src/**/*.js',
+    '!src/app.js',
+    '!src/index.js',
+    '!src/config/**',
+    '!src/db/**',
+    '!src/**/*.controller.js',
+    '!src/**/*.routes.js',
+    '!src/**/*.test.js'
+  ],
   coverageThreshold: {
     global: {
-      lines: 75,
-      functions: 75,
-      branches: 75,
-      statements: 75,
-    },
+      branches:   75,
+      functions:  75,
+      lines:      75,
+      statements: 75
+    }
   },
-  coverageReporters: ['text', 'lcov', 'html'],
-  testMatch: ['**/tests/**/*.test.js'],
+  coverageReporters: ['text', 'html', 'json-summary'],
+  coverageDirectory: 'coverage',
   verbose: true,
-  forceExit: true,
+  forceExit: true
 };

@@ -205,25 +205,62 @@ docker exec -it ecommify-mongo mongosh ecommify /tmp/seed.js
 
 ---
 
-## Ejecutar pruebas unitarias
+## Pruebas unitarias
+
+### Resultados
+
+- **67 tests** organizados en 6 módulos — 67/67 PASS
+- **Cobertura:** Statements 98.3% · Branches 89.28% · Functions 100% · Lines 100%
+- **Framework:** Jest 29 · **Patrones:** TDD + AAA + Given-When-Then
+
+### Ejecutar tests
 
 ```bash
 cd backend
-npm install
-npm test
+npm test                 # Todos los tests
+npm run test:coverage    # Con reporte de cobertura HTML
+npm run test:ci          # Modo CI/CD
 ```
 
-Resultado esperado (67 tests, cobertura > 95%):
+### Resultado de ejecución
 
 ```
-Test Suites: 6 passed, 6 total
-Tests:       67 passed, 67 total
-
 -----------------------|---------|----------|---------|---------|
 File                   | % Stmts | % Branch | % Funcs | % Lines |
 -----------------------|---------|----------|---------|---------|
 All files              |    98.3 |    89.28 |     100 |     100 |
+ auth.service.js       |   93.33 |     87.5 |     100 |     100 |
+ cart.service.js       |     100 |       75 |     100 |     100 |
+ catalog.service.js    |     100 |     90.9 |     100 |     100 |
+ checkout.service.js   |     100 |    88.88 |     100 |     100 |
+ inventory.service.js  |     100 |      100 |     100 |     100 |
+ reviews.service.js    |     100 |      100 |     100 |     100 |
+-----------------------|---------|----------|---------|---------|
+Test Suites: 6 passed, 6 total
+Tests:       67 passed, 67 total
 ```
+
+### Estructura de tests
+
+```
+backend/tests/
+├── auth/auth.service.test.js           (14 tests — HU-01, HU-02)
+├── catalog/catalog.service.test.js     ( 9 tests — HU-03, HU-04)
+├── cart/cart.service.test.js           (11 tests — HU-05)
+├── checkout/checkout.service.test.js   (10 tests — HU-06)
+├── reviews/reviews.service.test.js     (12 tests — HU-07)
+├── inventory/inventory.service.test.js (11 tests — HU-08)
+└── evidence/test-output.txt           (log de ejecución completo)
+```
+
+### Documentación de testing
+
+| Documento | Ubicación |
+|---|---|
+| Plan de pruebas | `backend/docs/TEST_PLAN.md` |
+| Matriz de trazabilidad (67 filas) | `backend/docs/TRACEABILITY_MATRIX.md` |
+| Reporte HTML de cobertura | `backend/coverage/index.html` |
+| Log de ejecución | `backend/tests/evidence/test-output.txt` |
 
 ---
 
