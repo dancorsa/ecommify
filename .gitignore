@@ -19,3 +19,9 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# JMeter – resultados y reportes (no versionar datos de ejecución)
+perf/results/*.jtl
+perf/results/*_report/
+# Screenshots sí se versionan (evidencia de ejecución)
+!perf/results/screenshots/

@@ -1,0 +1,10 @@
+Integrantes del equipo – Pruebas de Carga Ecommify
+Universidad de La Sabana – Maestría en Arquitectura de Software
+Materia: Técnicas y Validación de Software
+
+1. Danilo Andrés Cortés Saavedra
+2. David Ricardo Grandas Cárdenas
+3. Edisson Steven Bustos Galeano
+
+GitHub: https://github.com/dancorsa/ecommify
+Fecha: 2026-06-11

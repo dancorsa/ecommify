@@ -308,3 +308,95 @@ docker compose down -v
 - [Schema formal MongoDB (colecciones + validación)](database/mongodb/schema/collections_schema.json)
 - [Consultas analíticas avanzadas](database/postgresql/queries/analytical_queries.sql)
 - [Dataset Olist en Kaggle](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)
+
+---
+
+## Pruebas de Carga y Rendimiento
+
+**Herramienta:** Apache JMeter 5.4.3  
+**Endpoint bajo prueba:** `GET /api/catalog/:id` (público, sin autenticación)  
+**Datos de entrada:** `perf/data/productos.csv` (prod-001 a prod-008)
+
+### SLOs
+
+| Métrica | Umbral |
+|---------|--------|
+| p95 latencia | < 300ms |
+| p99 latencia | < 800ms |
+| Tasa de errores | < 1% |
+| Throughput | > 10 req/s |
+
+### Escenarios JMeter
+
+| Archivo | Tipo | Configuración |
+|---------|------|---------------|
+| `perf/scripts/01_baseline_test.jmx` | Baseline | 10 VUs, 5 min, 200ms pacing |
+| `perf/scripts/02_load_test.jmx` | Load | 50 VUs (5 min) → 100 VUs (7 min) |
+| `perf/scripts/03_stress_test.jmx` | Stress | 200 → 400 → 600 VUs sin think time |
+| `perf/scripts/04_spike_test.jmx` | Spike | 10 → 300 VUs en 30s → 10 VUs |
+| `perf/scripts/05_soak_test.jmx` | Soak | 100 VUs, 60 min, 1500ms pacing |
+| `perf/scripts/06_regression_test.jmx` | Regresión | 10 VUs, 5 min (idéntico a baseline) |
+
+### Ejecución
+
+```bash
+# Prerequisito: levantar el stack
+docker compose up -d
+
+# Escenario 01 – Baseline
+jmeter -n -t perf/scripts/01_baseline_test.jmx \
+  -l perf/results/01_baseline.jtl \
+  -e -o perf/results/01_baseline_report
+
+# Escenario 02 – Load
+jmeter -n -t perf/scripts/02_load_test.jmx \
+  -l perf/results/02_load.jtl \
+  -e -o perf/results/02_load_report
+
+# Escenario 03 – Stress
+jmeter -n -t perf/scripts/03_stress_test.jmx \
+  -l perf/results/03_stress.jtl \
+  -e -o perf/results/03_stress_report
+
+# Escenario 04 – Spike
+jmeter -n -t perf/scripts/04_spike_test.jmx \
+  -l perf/results/04_spike.jtl \
+  -e -o perf/results/04_spike_report
+
+# Escenario 05 – Soak (60 min)
+jmeter -n -t perf/scripts/05_soak_test.jmx \
+  -l perf/results/05_soak.jtl \
+  -e -o perf/results/05_soak_report
+
+# Escenario 06 – Regresión
+jmeter -n -t perf/scripts/06_regression_test.jmx \
+  -l perf/results/06_regression.jtl \
+  -e -o perf/results/06_regression_report
+```
+
+### Tabla de Resultados
+
+| Escenario | VUs | p95 (ms) | p99 (ms) | Throughput (req/s) | Error% | SLO |
+|-----------|-----|----------|----------|--------------------|--------|-----|
+| 01 Baseline | 10 | 62 | 178 | 40.9 | 0.00% | ✅ |
+| 02 Load E1 | 50 | 57 | 100 | 176.5 | 34.68%* | ❌* |
+| 02 Load E2 | 100 | 187 | 246 | 336.9 | 62.4%* | ❌* |
+| 03 Stress E1 | 200 | 651 | 754 | 401.7 | 0.00% | ⚠️ |
+| 03 Stress E2 | 400 | 10010 | 10016 | 390.5 | 5.12% | ❌ |
+| 03 Stress E3 | 600 | 10012 | 10017 | 387.3 | 11.95% | ❌ |
+| 04 Spike Pico | 300 | 621 | 10003 | 434.9 | 0.96% | ⚠️ |
+| 04 Spike Recup. | 10 | 35 | 43 | 385.7 | 0.00% | ✅ |
+| 05 Soak 60min | 100 | 26 | 39 | 63.0 | 0.004% | ✅ |
+| 06 Regresión | 10 | 25 | 42 | 43.4 | 0.008% | ✅ |
+
+*BindException TCP Windows — limitación del SO del host de pruebas, no errores HTTP de la aplicación
+
+### Documentación de pruebas de carga
+
+| Documento | Ubicación |
+|-----------|-----------|
+| Informe de ejecución | `informe_ejecucion.md` |
+| Registro de defectos | `perf/defectos_rendimiento.md` |
+| Integrantes del equipo | `integrantes.txt` |
+| CI/CD Pipeline | `perf/ci/github-actions.yml` |
+| Screenshots de evidencia | `perf/results/screenshots/` |
