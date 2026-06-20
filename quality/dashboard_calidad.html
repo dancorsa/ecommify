@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Calidad – Ecommify</title>
+<style>
+  :root {
+    --dark:    #0D1117;
+    --dark2:   #161B22;
+    --dark3:   #21262D;
+    --border:  #30363D;
+    --text:    #E6EDF3;
+    --text2:   #8B949E;
+    --green:   #3FB950;
+    --yellow:  #D29922;
+    --red:     #F85149;
+    --blue:    #58A6FF;
+    --purple:  #6C63FF;
+    --teal:    #43D9AD;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    padding: 32px 40px 60px;
+    min-height: 100vh;
+  }
+
+  /* ─── HEADER ─── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-left h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--purple), var(--teal));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header-left p {
+    font-size: 0.82rem;
+    color: var(--text2);
+    margin-top: 6px;
+  }
+
+  .header-right {
+    text-align: right;
+    font-size: 0.78rem;
+    color: var(--text2);
+    line-height: 1.8;
+  }
+
+  /* ─── SECTION TITLE ─── */
+  .section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--purple);
+    margin-bottom: 16px;
+    margin-top: 40px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ─── GRID ─── */
+  .grid { display: grid; gap: 16px; }
+  .g2 { grid-template-columns: repeat(2, 1fr); }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  .g4 { grid-template-columns: repeat(4, 1fr); }
+
+  /* ─── CARDS ─── */
+  .card {
+    background: var(--dark2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+  }
+
+  .card-sm { padding: 16px 20px; }
+
+  .card h3 {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text2);
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  /* ─── KPI METRIC ─── */
+  .kpi { text-align: center; }
+  .kpi-value {
+    font-size: 2.6rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .kpi-label {
+    font-size: 0.78rem;
+    color: var(--text2);
+    line-height: 1.4;
+  }
+  .kpi-sub {
+    font-size: 0.72rem;
+    color: var(--text2);
+    margin-top: 4px;
+    opacity: .7;
+  }
+
+  /* ─── COVERAGE BAR ─── */
+  .cov-row { margin-bottom: 12px; }
+  .cov-row:last-child { margin-bottom: 0; }
+  .cov-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    margin-bottom: 5px;
+  }
+  .cov-meta .val { font-weight: 700; }
+  .cov-meta .val.ok { color: var(--green); }
+  .cov-meta .val.warn { color: var(--yellow); }
+  .cov-track {
+    background: var(--dark3);
+    border-radius: 6px;
+    height: 8px;
+    overflow: hidden;
+  }
+  .cov-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 1.2s ease;
+  }
+  .fill-green  { background: linear-gradient(90deg, #238636, #3fb950); }
+  .fill-yellow { background: linear-gradient(90deg, #9e6a03, #d29922); }
+  .fill-purple { background: linear-gradient(90deg, #4f3ebb, #6c63ff); }
+
+  /* ─── TABLE ─── */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .tbl th {
+    background: var(--dark3);
+    color: var(--text2);
+    font-weight: 600;
+    padding: 9px 12px;
+    text-align: left;
+    font-size: 0.72rem;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  .tbl td {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(48,54,61,.5);
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tr:hover td { background: rgba(255,255,255,.025); }
+
+  .pass { color: var(--green); font-weight: 600; }
+  .warn { color: var(--yellow); font-weight: 600; }
+  .fail { color: var(--red); font-weight: 600; }
+
+  /* ─── BADGE ─── */
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+  .b-green  { background: rgba(63,185,80,.15);  color: var(--green);  border: 1px solid rgba(63,185,80,.3); }
+  .b-red    { background: rgba(248,81,73,.15);  color: var(--red);    border: 1px solid rgba(248,81,73,.3); }
+  .b-yellow { background: rgba(210,153,34,.15); color: var(--yellow); border: 1px solid rgba(210,153,34,.3); }
+  .b-blue   { background: rgba(88,166,255,.15); color: var(--blue);   border: 1px solid rgba(88,166,255,.3); }
+  .b-purple { background: rgba(108,99,255,.15); color: var(--purple); border: 1px solid rgba(108,99,255,.3); }
+
+  /* ─── DEFECT LIFECYCLE ─── */
+  .lifecycle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .lc-step {
+    font-size: 0.72rem;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: var(--dark3);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    white-space: nowrap;
+  }
+  .lc-step.done { color: var(--green); border-color: rgba(63,185,80,.3); background: rgba(63,185,80,.08); }
+  .lc-step.open { color: var(--red); border-color: rgba(248,81,73,.3); background: rgba(248,81,73,.08); }
+  .lc-arrow { color: var(--text2); font-size: 0.8rem; }
+
+  /* ─── DONUT (SVG pseudo-chart) ─── */
+  .pie-wrap { display: flex; align-items: center; gap: 24px; }
+  .pie-legend { font-size: 0.8rem; }
+  .pie-legend li {
+    list-style: none;
+    padding: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text2);
+  }
+  .pie-legend li .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .pie-legend li strong { color: var(--text); }
+
+  /* ─── SLO GAUGE ─── */
+  .gauge-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    font-size: 0.8rem;
+  }
+  .gauge-label { width: 120px; color: var(--text2); flex-shrink: 0; }
+  .gauge-track { flex: 1; background: var(--dark3); border-radius: 6px; height: 10px; overflow: hidden; }
+  .gauge-fill { height: 100%; border-radius: 6px; }
+  .gauge-val { width: 48px; text-align: right; font-weight: 700; flex-shrink: 0; }
+
+  /* ─── FOOTER ─── */
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-size: 0.75rem;
+    color: var(--text2);
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     HEADER
+════════════════════════════════════════ -->
+<div class="header">
+  <div class="header-left">
+    <h1>Dashboard de Calidad — Ecommify</h1>
+    <p>Universidad de La Sabana · Maestría en Arquitectura de Software · Fundamentos de Testing · Unidad 6</p>
+  </div>
+  <div class="header-right">
+    <div>📅 Período de pruebas: 2026-06-11</div>
+    <div>👤 Danilo Andrés Cortés Saavedra</div>
+    <div>👤 David Ricardo Grandas Cárdenas</div>
+    <div>👤 Edisson Steven Bustos Galeano</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     KPIs RESUMEN EJECUTIVO
+════════════════════════════════════════ -->
+<div class="section-title">Resumen ejecutivo</div>
+<div class="grid g4">
+  <div class="card kpi">
+    <div class="kpi-value" style="color:var(--green);">67 / 67</div>
+    <div class="kpi-label">Pruebas unitarias<br>pasadas</div>
+    <div class="kpi-sub">100% pass rate · 6 módulos</div>
+  </div>
+  <div class="card kpi">
+    <div class="kpi-value" style="color:var(--teal);">98.3%</div>
+    <div class="kpi-label">Cobertura de código<br>(statements)</div>
+    <div class="kpi-sub">Umbral mínimo: 75%</div>
+  </div>
+  <div class="card kpi">
+    <div class="kpi-value" style="color:var(--yellow);">5</div>
+    <div class="kpi-label">Defectos registrados<br>3 cerrados · 2 abiertos</div>
+    <div class="kpi-sub">0 Críticos abiertos → P1</div>
+  </div>
+  <div class="card kpi">
+    <div class="kpi-value" style="color:var(--blue);">5 / 8</div>
+    <div class="kpi-label">SLOs cumplidos<br>(escenarios válidos)</div>
+    <div class="kpi-sub">Baseline + Spike recup. + Soak + Regr.</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PRUEBAS UNITARIAS — COBERTURA
+════════════════════════════════════════ -->
+<div class="section-title">Pruebas unitarias — cobertura por módulo</div>
+<div class="grid g2">
+  <div class="card">
+    <h3>Statements / Lines por módulo</h3>
+    <div class="cov-row">
+      <div class="cov-meta"><span>Auth</span><span class="val warn">93.3%</span></div>
+      <div class="cov-track"><div class="cov-fill fill-yellow" style="width:93.3%"></div></div>
+    </div>
+    <div class="cov-row">
+      <div class="cov-meta"><span>Catalog</span><span class="val ok">100%</span></div>
+      <div class="cov-track"><div class="cov-fill fill-green" style="width:100%"></div></div>
+    </div>
+    <div class="cov-row">
+      <div class="cov-meta"><span>Cart</span><span class="val ok">100%</span></div>
+      <div class="cov-track"><div class="cov-fill fill-green" style="width:100%"></div></div>
+    </div>
+    <div class="cov-row">
+      <div class="cov-meta"><span>Checkout</span><span class="val ok">100%</span></div>
+      <div class="cov-track"><div class="cov-fill fill-green" style="width:100%"></div></div>
+    </div>
+    <div class="cov-row">
+      <div class="cov-meta"><span>Reviews</span><span class="val ok">100%</span></div>
+      <div class="cov-track"><div class="cov-fill fill-green" style="width:100%"></div></div>
+    </div>
+    <div class="cov-row">
+      <div class="cov-meta"><span>Inventory</span><span class="val ok">100%</span></div>
+      <div class="cov-track"><div class="cov-fill fill-green" style="width:100%"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Métricas globales de cobertura</h3>
+    <div class="gauge-row">
+      <span class="gauge-label">Statements</span>
+      <div class="gauge-track"><div class="gauge-fill" style="width:98.3%; background:linear-gradient(90deg,var(--purple),var(--teal));"></div></div>
+      <span class="gauge-val" style="color:var(--green);">98.3%</span>
+    </div>
+    <div class="gauge-row">
+      <span class="gauge-label">Branches</span>
+      <div class="gauge-track"><div class="gauge-fill" style="width:89.28%; background:linear-gradient(90deg,var(--purple),var(--teal));"></div></div>
+      <span class="gauge-val" style="color:var(--green);">89.3%</span>
+    </div>
+    <div class="gauge-row">
+      <span class="gauge-label">Functions</span>
+      <div class="gauge-track"><div class="gauge-fill" style="width:100%; background:linear-gradient(90deg,var(--purple),var(--teal));"></div></div>
+      <span class="gauge-val" style="color:var(--green);">100%</span>
+    </div>
+    <div class="gauge-row">
+      <span class="gauge-label">Lines</span>
+      <div class="gauge-track"><div class="gauge-fill" style="width:100%; background:linear-gradient(90deg,var(--purple),var(--teal));"></div></div>
+      <span class="gauge-val" style="color:var(--green);">100%</span>
+    </div>
+    <div style="margin-top:18px;">
+      <table class="tbl">
+        <thead><tr><th>Módulo</th><th>Tests</th><th>Branches</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr><td>Auth</td><td>14</td><td class="warn">87.5%</td><td><span class="badge b-green">PASS</span></td></tr>
+          <tr><td>Catalog</td><td>9</td><td class="pass">90.9%</td><td><span class="badge b-green">PASS</span></td></tr>
+          <tr><td>Cart</td><td>11</td><td class="warn">75.0%</td><td><span class="badge b-green">PASS</span></td></tr>
+          <tr><td>Checkout</td><td>10</td><td class="pass">88.9%</td><td><span class="badge b-green">PASS</span></td></tr>
+          <tr><td>Reviews</td><td>12</td><td class="pass">100%</td><td><span class="badge b-green">PASS</span></td></tr>
+          <tr><td>Inventory</td><td>11</td><td class="pass">100%</td><td><span class="badge b-green">PASS</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     RESULTADOS JMETER
+════════════════════════════════════════ -->
+<div class="section-title">Pruebas de rendimiento — resultados JMeter</div>
+<div class="card">
+  <h3 style="margin-bottom:14px;">Tabla comparativa de escenarios · Endpoint: GET /api/catalog/:id</h3>
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Escenario</th>
+        <th>Tipo</th>
+        <th>VUs</th>
+        <th>p95 (ms)</th>
+        <th>p99 (ms)</th>
+        <th>Throughput (req/s)</th>
+        <th>Error%</th>
+        <th>SLO p95 &lt;300ms</th>
+        <th>SLO err &lt;1%</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>01 Baseline</strong></td>
+        <td>Referencia</td>
+        <td>10</td>
+        <td class="pass">62</td>
+        <td class="pass">178</td>
+        <td>40.9</td>
+        <td class="pass">0.00%</td>
+        <td class="pass">✅</td>
+        <td class="pass">✅</td>
+        <td><span class="badge b-green">PASS</span></td>
+      </tr>
+      <tr>
+        <td>02 Load E1</td>
+        <td>Carga</td>
+        <td>50</td>
+        <td class="pass">57</td>
+        <td class="pass">100</td>
+        <td>176.5</td>
+        <td class="fail">34.68%*</td>
+        <td class="pass">✅</td>
+        <td class="fail">❌*</td>
+        <td><span class="badge b-yellow">ENTORNO</span></td>
+      </tr>
+      <tr>
+        <td>02 Load E2</td>
+        <td>Carga</td>
+        <td>100</td>
+        <td class="pass">187</td>
+        <td class="pass">246</td>
+        <td>336.9</td>
+        <td class="fail">62.4%*</td>
+        <td class="pass">✅</td>
+        <td class="fail">❌*</td>
+        <td><span class="badge b-yellow">ENTORNO</span></td>
+      </tr>
+      <tr>
+        <td>03 Stress E1</td>
+        <td>Estrés</td>
+        <td>200</td>
+        <td class="fail">651</td>
+        <td class="fail">754</td>
+        <td>401.7</td>
+        <td class="pass">0.00%</td>
+        <td class="fail">❌</td>
+        <td class="pass">✅</td>
+        <td><span class="badge b-yellow">WARN</span></td>
+      </tr>
+      <tr>
+        <td>03 Stress E2</td>
+        <td>Estrés</td>
+        <td>400</td>
+        <td class="fail">10.010</td>
+        <td class="fail">10.016</td>
+        <td>390.5</td>
+        <td class="fail">5.12%</td>
+        <td class="fail">❌</td>
+        <td class="fail">❌</td>
+        <td><span class="badge b-red">FAIL</span></td>
+      </tr>
+      <tr>
+        <td>03 Stress E3</td>
+        <td>Estrés</td>
+        <td>600</td>
+        <td class="fail">10.012</td>
+        <td class="fail">10.017</td>
+        <td>387.3</td>
+        <td class="fail">11.95%</td>
+        <td class="fail">❌</td>
+        <td class="fail">❌</td>
+        <td><span class="badge b-red">FAIL</span></td>
+      </tr>
+      <tr>
+        <td>04 Spike Base</td>
+        <td>Pico</td>
+        <td>10</td>
+        <td class="pass">31</td>
+        <td class="pass">38</td>
+        <td>421.5</td>
+        <td class="pass">0.00%</td>
+        <td class="pass">✅</td>
+        <td class="pass">✅</td>
+        <td><span class="badge b-green">PASS</span></td>
+      </tr>
+      <tr>
+        <td>04 Spike Pico</td>
+        <td>Pico</td>
+        <td>300</td>
+        <td class="fail">621</td>
+        <td class="fail">10.003</td>
+        <td>434.9</td>
+        <td class="pass">0.96%</td>
+        <td class="fail">❌</td>
+        <td class="pass">✅</td>
+        <td><span class="badge b-yellow">WARN</span></td>
+      </tr>
+      <tr>
+        <td>04 Spike Recup.</td>
+        <td>Pico</td>
+        <td>10</td>
+        <td class="pass">35</td>
+        <td class="pass">43</td>
+        <td>385.7</td>
+        <td class="pass">0.00%</td>
+        <td class="pass">✅</td>
+        <td class="pass">✅</td>
+        <td><span class="badge b-green">PASS</span></td>
+      </tr>
+      <tr style="background:rgba(67,217,173,.04);">
+        <td><strong>05 Soak 60 min</strong></td>
+        <td>Resistencia</td>
+        <td>100</td>
+        <td class="pass"><strong>26</strong></td>
+        <td class="pass"><strong>39</strong></td>
+        <td>63.0</td>
+        <td class="pass"><strong>0.004%</strong></td>
+        <td class="pass">✅</td>
+        <td class="pass">✅</td>
+        <td><span class="badge b-green">PASS</span></td>
+      </tr>
+      <tr>
+        <td><strong>06 Regresión</strong></td>
+        <td>Regresión</td>
+        <td>10</td>
+        <td class="pass"><strong>25</strong></td>
+        <td class="pass"><strong>42</strong></td>
+        <td>43.4</td>
+        <td class="pass"><strong>0.008%</strong></td>
+        <td class="pass">✅</td>
+        <td class="pass">✅</td>
+        <td><span class="badge b-green">PASS</span></td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="font-size:0.72rem; color:var(--text2); margin-top:8px;">
+    * Errores marcados como ENTORNO: son <code>BindException</code> TCP del SO Windows (agotamiento de puertos efímeros), no errores HTTP de la aplicación.
+  </p>
+</div>
+
+<!-- ════════════════════════════════════════
+     DEFECTOS — CICLO DE VIDA
+════════════════════════════════════════ -->
+<div class="section-title">Gestión de defectos — ciclo de vida y priorización</div>
+<div class="grid g2">
+  <div class="card">
+    <h3>Distribución por severidad y estado</h3>
+    <div class="pie-wrap" style="margin-bottom:20px;">
+      <svg width="110" height="110" viewBox="0 0 42 42">
+        <!-- Total 5 defectos: Crítica 1 (72°), Alta 2 (144°), Media 2 (144°) -->
+        <!-- Crítica: rojo 1/5 = 72° desde 270° -->
+        <circle r="15.9" cx="21" cy="21" fill="transparent" stroke="#F85149" stroke-width="6"
+          stroke-dasharray="20 79.17" stroke-dashoffset="0" transform="rotate(-90 21 21)"/>
+        <!-- Alta: amarillo 2/5 = 144° -->
+        <circle r="15.9" cx="21" cy="21" fill="transparent" stroke="#D29922" stroke-width="6"
+          stroke-dasharray="39.79 59.38" stroke-dashoffset="-19.79" transform="rotate(-90 21 21)"/>
+        <!-- Media: azul 2/5 = 144° -->
+        <circle r="15.9" cx="21" cy="21" fill="transparent" stroke="#58A6FF" stroke-width="6"
+          stroke-dasharray="39.79 59.38" stroke-dashoffset="-59.38" transform="rotate(-90 21 21)"/>
+        <text x="21" y="25" text-anchor="middle" font-size="8" fill="#E6EDF3" font-weight="bold">5</text>
+      </svg>
+      <ul class="pie-legend">
+        <li><span class="dot" style="background:var(--red)"></span><strong>Crítica:</strong> 1 (PERF-02)</li>
+        <li><span class="dot" style="background:var(--yellow)"></span><strong>Alta:</strong> 2 (PERF-01, PERF-03)</li>
+        <li><span class="dot" style="background:var(--blue)"></span><strong>Media:</strong> 2 (PERF-04, PERF-05)</li>
+      </ul>
+    </div>
+    <div class="pie-wrap">
+      <svg width="110" height="110" viewBox="0 0 42 42">
+        <!-- 3 cerrados (verde) 3/5 = 216°; 2 abiertos (rojo) 2/5 = 144° -->
+        <circle r="15.9" cx="21" cy="21" fill="transparent" stroke="#3FB950" stroke-width="6"
+          stroke-dasharray="59.77 39.4" stroke-dashoffset="0" transform="rotate(-90 21 21)"/>
+        <circle r="15.9" cx="21" cy="21" fill="transparent" stroke="#F85149" stroke-width="6"
+          stroke-dasharray="39.4 59.77" stroke-dashoffset="-59.77" transform="rotate(-90 21 21)"/>
+        <text x="21" y="25" text-anchor="middle" font-size="8" fill="#E6EDF3" font-weight="bold">5</text>
+      </svg>
+      <ul class="pie-legend">
+        <li><span class="dot" style="background:var(--green)"></span><strong>Cerrados:</strong> 3 (PERF-01, PERF-04, PERF-05)</li>
+        <li><span class="dot" style="background:var(--red)"></span><strong>Abiertos:</strong> 2 (PERF-02, PERF-03)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Matriz de priorización (Severidad × Prob. en producción)</h3>
+    <table class="tbl" style="font-size:0.76rem; margin-bottom:16px;">
+      <thead>
+        <tr><th>ID</th><th>Tipo</th><th>Severidad</th><th>Prioridad</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>PERF-02</strong></td>
+          <td>Rendimiento</td>
+          <td class="fail">Crítica</td>
+          <td><span class="badge b-red">P1</span></td>
+          <td>🔴 Abierto</td>
+        </tr>
+        <tr>
+          <td><strong>PERF-03</strong></td>
+          <td>Diseño</td>
+          <td class="fail">Alta</td>
+          <td><span class="badge b-red">P1</span></td>
+          <td>🔴 Abierto</td>
+        </tr>
+        <tr>
+          <td>PERF-01</td>
+          <td>Entorno</td>
+          <td class="warn">Alta</td>
+          <td><span class="badge b-yellow">P2</span></td>
+          <td>✅ Cerrado</td>
+        </tr>
+        <tr>
+          <td>PERF-04</td>
+          <td>Entorno</td>
+          <td style="color:var(--blue);">Media</td>
+          <td><span class="badge b-blue">P3</span></td>
+          <td>✅ Cerrado</td>
+        </tr>
+        <tr>
+          <td>PERF-05</td>
+          <td>Rendimiento</td>
+          <td style="color:var(--blue);">Media</td>
+          <td><span class="badge b-blue">P3</span></td>
+          <td>✅ Cerrado</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Ciclo de vida por defecto -->
+<div class="card card-sm" style="margin-top:16px;">
+  <h3 style="margin-bottom:14px;">Ciclo de vida documentado por defecto</h3>
+  <div style="display:grid; gap:12px;">
+    <div>
+      <div style="font-size:0.78rem; font-weight:600; margin-bottom:6px; color:var(--red);">PERF-02 — Pool PostgreSQL saturado (Abierto)</div>
+      <div class="lifecycle">
+        <span class="lc-step done">Identificación</span><span class="lc-arrow">→</span>
+        <span class="lc-step done">Clasificación</span><span class="lc-arrow">→</span>
+        <span class="lc-step done">Análisis</span><span class="lc-arrow">→</span>
+        <span class="lc-step open">Validación pendiente</span><span class="lc-arrow">→</span>
+        <span class="lc-step open">Cierre pendiente</span>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:0.78rem; font-weight:600; margin-bottom:6px; color:var(--red);">PERF-03 — Sin rate limiting (Abierto)</div>
+      <div class="lifecycle">
+        <span class="lc-step done">Identificación</span><span class="lc-arrow">→</span>
+        <span class="lc-step done">Clasificación</span><span class="lc-arrow">→</span>
+        <span class="lc-step done">Análisis</span><span class="lc-arrow">→</span>
+        <span class="lc-step open">Validación pendiente</span><span class="lc-arrow">→</span>
+        <span class="lc-step open">Cierre pendiente</span>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:0.78rem; font-weight:600; margin-bottom:6px; color:var(--green);">PERF-01 / PERF-04 / PERF-05 — Limitación SO / Sin leak (Cerrados)</div>
+      <div class="lifecycle">
+        <span class="lc-step done">Identificación</span><span class="lc-arrow">→</span>
+        <span class="lc-step done">Clasificación</span><span class="lc-arrow">→</span>
+        <span class="lc-step done">Análisis</span><span class="lc-arrow">→</span>
+        <span class="lc-step done">Validación</span><span class="lc-arrow">→</span>
+        <span class="lc-step done">✅ Cerrado</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     MÉTRICAS DE CALIDAD GLOBALES
+════════════════════════════════════════ -->
+<div class="section-title">Métricas de calidad globales</div>
+<div class="grid g4">
+  <div class="card kpi">
+    <div class="kpi-value" style="color:var(--green);">100%</div>
+    <div class="kpi-label">Pass rate<br>pruebas unitarias</div>
+    <div class="kpi-sub">67/67 tests · 0 fallos</div>
+  </div>
+  <div class="card kpi">
+    <div class="kpi-value" style="color:var(--yellow);">0.074</div>
+    <div class="kpi-label">Densidad de defectos<br>(defectos / 100 tests)</div>
+    <div class="kpi-sub">5 defectos · 67 unit tests</div>
+  </div>
+  <div class="card kpi">
+    <div class="kpi-value" style="color:var(--teal);">60%</div>
+    <div class="kpi-label">Tasa de cierre<br>de defectos</div>
+    <div class="kpi-sub">3 cerrados / 5 totales</div>
+  </div>
+  <div class="card kpi">
+    <div class="kpi-value" style="color:var(--blue);">400 VUs</div>
+    <div class="kpi-label">Punto de quiebre<br>confirmado</div>
+    <div class="kpi-sub">Operación normal hasta 100 VUs</div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <h3 style="margin-bottom:14px;">Cumplimiento de SLOs por escenario válido</h3>
+  <div class="gauge-row">
+    <span class="gauge-label">p95 &lt; 300ms</span>
+    <div class="gauge-track"><div class="gauge-fill" style="width:54.5%; background:var(--green);"></div></div>
+    <span class="gauge-val" style="color:var(--green);">6/11</span>
+  </div>
+  <div class="gauge-row">
+    <span class="gauge-label">p99 &lt; 800ms</span>
+    <div class="gauge-track"><div class="gauge-fill" style="width:63.6%; background:var(--blue);"></div></div>
+    <span class="gauge-val" style="color:var(--blue);">7/11</span>
+  </div>
+  <div class="gauge-row">
+    <span class="gauge-label">Error rate &lt;1%</span>
+    <div class="gauge-track"><div class="gauge-fill" style="width:54.5%; background:var(--yellow);"></div></div>
+    <span class="gauge-val" style="color:var(--yellow);">6/11</span>
+  </div>
+  <div class="gauge-row">
+    <span class="gauge-label">Throughput &gt;10 r/s</span>
+    <div class="gauge-track"><div class="gauge-fill" style="width:100%; background:var(--teal);"></div></div>
+    <span class="gauge-val" style="color:var(--teal);">11/11</span>
+  </div>
+  <p style="font-size:0.72rem; color:var(--text2); margin-top:10px;">
+    Nota: Los 3 escenarios de Load con errores TCP (BindException) se cuentan separadamente como limitación de entorno, no como incumplimiento de la aplicación.
+  </p>
+</div>
+
+<!-- ════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════ -->
+<div class="footer">
+  <div>Ecommify · Dashboard de Calidad · Unidad 6 — Gestión de defectos y validación final</div>
+  <div>Universidad de La Sabana · Maestría en Arquitectura de Software · 2026</div>
+</div>
+
+</body>
+</html>

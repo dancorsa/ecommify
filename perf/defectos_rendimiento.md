@@ -7,15 +7,27 @@
 
 ---
 
-## Tabla Resumen
+## Tabla Resumen con Priorización
 
-| ID | Escenario | SLO Violado | Severidad | Estado |
-|----|-----------|-------------|-----------|--------|
-| PERF-01 | Load (02) – 100 VUs | Error rate > 1% (BindException Windows) | Alta | Documentado |
-| PERF-02 | Stress (03) – 600 VUs | p95 > 300ms, error rate > 50% | Crítica | Documentado |
-| PERF-03 | Spike (04) – 300 VUs | p95 > 300ms durante el pico | Alta | Documentado |
-| PERF-04 | Load (02) – 100 VUs | Throughput < límite TCP Windows | Media | Documentado |
-| PERF-05 | Soak (05) – 60 min | Degradación progresiva p99 | Media | Documentado |
+| ID | Tipo | Escenario | SLO Violado | Severidad | Prioridad | Estado Final |
+|----|------|-----------|-------------|-----------|-----------|--------------|
+| PERF-01 | Entorno | Load (02) – 100 VUs | Error rate > 1% (BindException Windows) | Alta | P2 | ✅ Cerrado |
+| PERF-02 | Rendimiento | Stress (03) – 600 VUs | p95 > 300ms, error rate > 50% | Crítica | P1 | 🔴 Abierto |
+| PERF-03 | Diseño | Spike (04) – 300 VUs | p95 > 300ms durante el pico | Alta | P1 | 🔴 Abierto |
+| PERF-04 | Entorno | Load (02) – 100 VUs | Throughput < límite TCP Windows | Media | P3 | ✅ Cerrado |
+| PERF-05 | Rendimiento | Soak (05) – 60 min | Degradación progresiva p99 (riesgo) | Media | P3 | ✅ Cerrado |
+
+---
+
+## Matriz de Priorización (Severidad × Probabilidad en Producción)
+
+|  | **Baja probabilidad en prod.** | **Alta probabilidad en prod.** |
+|---|---|---|
+| **Severidad Crítica** | — | **PERF-02** → P1 (pool PostgreSQL) |
+| **Severidad Alta** | PERF-01, PERF-04 → P2/P3 (limitación SO Windows) | **PERF-03** → P1 (sin rate limiting) |
+| **Severidad Media** | PERF-05 → P3 (confirmado sin leak) | — |
+
+> **P1** = Bloquea release · **P2** = Corregir antes del siguiente ciclo · **P3** = Backlog / documentado
 
 ---
 
@@ -24,27 +36,37 @@
 | Campo | Valor |
 |-------|-------|
 | **ID** | PERF-01 |
+| **Tipo** | Entorno (limitación del host de pruebas) |
 | **Escenario** | 02_load_test – Etapa 2 (100 VUs) |
+| **HU afectada** | HU-03, HU-04 (catálogo) |
+| **Trazabilidad** | `perf/scripts/02_load_test.jmx` · `perf/results/02_load.jtl` |
 | **SLO violado** | Error rate > 1% |
 | **Severidad** | Alta |
-| **Estado** | Documentado |
+| **Prioridad** | P2 |
+| **Fecha detección** | 2026-06-11 |
+| **Detectado por** | Danilo Andrés Cortés Saavedra |
+| **Fecha análisis** | 2026-06-11 |
+| **Fecha validación** | 2026-06-11 |
+| **Validado por** | David Ricardo Grandas Cárdenas |
+| **Fecha cierre** | 2026-06-11 |
+| **Estado** | ✅ Cerrado |
+| **Evidencia** | `perf/results/screenshots/02_load_statistics.png` |
 
-**Descripción:**  
-Al alcanzar 100 VUs sin pacing suficiente, JMeter genera errores `java.net.BindException: Address already in use: connect`. Windows reserva puertos efímeros en el rango 49152-65535 (16.383 puertos) con TIME_WAIT de 240 segundos, lo que limita el throughput a ~68 req/s. Superado ese umbral, las conexiones nuevas fallan.
+### Ciclo de vida
 
-**Métricas observadas:**
-- VUs: 100
-- Error rate: > 1% (BindException, no HTTP)
-- Throughput real vs esperado: limitado por SO, no por la aplicación
+**1. Identificación**  
+Al alcanzar 100 VUs sin pacing suficiente, JMeter reporta errores `java.net.BindException: Address already in use: connect`. La tasa de error supera el 1% establecido como SLO.
 
-**Causa raíz:**  
-Restricción del sistema operativo Windows (TIME_WAIT 240s en puertos efímeros). No es un defecto de la aplicación sino una limitación del entorno de pruebas.
+**2. Clasificación**  
+Tipo: Limitación de entorno (SO Windows). No es un defecto de la aplicación; el error ocurre en el cliente JMeter, no en el servidor. Severidad Alta porque distorsiona los resultados de toda la batería de pruebas de carga.
 
-**Mitigación aplicada:**  
-ConstantTimer de 200ms en escenarios ≤50 VUs, 1500ms en soak de 100 VUs para mantenerse bajo el límite de ~68 req/s.
+**3. Seguimiento y validación**  
+- Windows reserva puertos efímeros 49152–65535 (16.383 puertos) con TIME_WAIT de 240 s → límite real ~68 req/s desde un único host.  
+- Se aplicó mitigación: ConstantTimer 200 ms para ≤50 VUs y 1.500 ms para 100 VUs en escenarios sostenidos.  
+- Validación: tras aplicar el timer, los escenarios de bajo VU corrieron sin BindException.
 
-**Impacto:**  
-Los resultados de error rate en escenarios de alta carga reflejan la limitación del host de pruebas, no de la aplicación. Se debe ejecutar desde Linux o múltiples nodos JMeter para validar carga real.
+**4. Cierre**  
+Defecto cerrado. La causa raíz es el entorno Windows, no la aplicación. La mitigación aplicada (pacing) es suficiente para el contexto académico. En producción se ejecutaría desde Linux o modo distribuido de JMeter. La aplicación en sí cumple los SLOs de latencia (p95=187ms, p99=246ms a 100 VUs).
 
 ---
 
@@ -53,25 +75,41 @@ Los resultados de error rate en escenarios de alta carga reflejan la limitación
 | Campo | Valor |
 |-------|-------|
 | **ID** | PERF-02 |
+| **Tipo** | Rendimiento (diseño de infraestructura) |
 | **Escenario** | 03_stress_test – Etapa 3 (600 VUs) |
+| **HU afectada** | HU-03, HU-04, HU-05, HU-06 (todos los módulos con acceso a PostgreSQL) |
+| **Trazabilidad** | `perf/scripts/03_stress_test.jmx` · `perf/results/03_stress.jtl` |
 | **SLO violado** | p95 > 300ms, p99 > 800ms, error rate > 1% |
 | **Severidad** | Crítica |
-| **Estado** | Documentado |
+| **Prioridad** | P1 |
+| **Fecha detección** | 2026-06-11 |
+| **Detectado por** | Edisson Steven Bustos Galeano |
+| **Fecha análisis** | 2026-06-11 |
+| **Fecha validación** | Pendiente (requiere fix) |
+| **Estado** | 🔴 Abierto |
+| **Evidencia** | `perf/results/screenshots/03_stress_statistics.png` |
 
-**Descripción:**  
-Con 600 VUs simultáneos sin think time, la API supera ampliamente todos los SLOs. La combinación de Node.js single-threaded event loop, pool de conexiones PostgreSQL saturado y memory pressure causa degradación progresiva hasta timeout.
+### Ciclo de vida
 
-**Métricas observadas:**
-- VUs pico: 600
-- p95 estimado: > 2000ms
-- p99 estimado: > 4000ms
-- Error rate estimado: > 50%
+**1. Identificación**  
+Con 600 VUs simultáneos sin think time, el p95 supera los 10.000 ms y la tasa de error alcanza el 11.95%. El sistema no responde dentro de los SLOs definidos para ninguna métrica.
 
-**Causa raíz:**  
-Pool de conexiones PostgreSQL agotado. Node.js no puede paralelizar más allá del límite del pool; las solicitudes se encolan hasta timeout. Posible memory pressure por acumulación de callbacks pendientes.
+**2. Clasificación**  
+Tipo: Rendimiento / Diseño. La causa no es el código de la aplicación sino la configuración del pool de conexiones de PostgreSQL (parámetro `pg.Pool.max` con valor por defecto) y la naturaleza single-threaded del event loop de Node.js bajo alta concurrencia I/O.
 
-**Recomendación:**  
-Aumentar el pool de conexiones PostgreSQL (`pg.Pool.max`), implementar circuit breaker para rechazar solicitudes antes de timeout, y evaluar conexión mediante PgBouncer para reutilización eficiente.
+**3. Seguimiento**  
+- Punto de quiebre confirmado entre 200 y 400 VUs: a 200 VUs el sistema opera sin errores HTTP (p95=651ms); a 400+ VUs el pool se satura generando timeouts de 10 s.  
+- El defecto se reproduce de forma consistente en cada ejecución del escenario 03.  
+- Impacto transversal: afecta a todos los módulos con consultas a PostgreSQL (catálogo, carrito, checkout).
+
+**4. Recomendaciones (pendiente de implementación)**  
+- Aumentar `pg.Pool.max` de su valor por defecto (10) a 50–100.  
+- Implementar circuit breaker (ej. `opossum`) para rechazar solicitudes antes de timeout.  
+- Evaluar conexión mediante PgBouncer para reutilización eficiente de conexiones.  
+- Habilitar clustering Node.js o PM2 para aprovechar múltiples núcleos.
+
+**5. Cierre**  
+Pendiente. El defecto permanece abierto hasta que se apliquen y validen las recomendaciones en un nuevo ciclo de pruebas de estrés.
 
 ---
 
@@ -80,24 +118,40 @@ Aumentar el pool de conexiones PostgreSQL (`pg.Pool.max`), implementar circuit b
 | Campo | Valor |
 |-------|-------|
 | **ID** | PERF-03 |
+| **Tipo** | Diseño (ausencia de mecanismos de control de carga) |
 | **Escenario** | 04_spike_test – Fase pico (300 VUs) |
-| **SLO violado** | p95 > 300ms |
+| **HU afectada** | HU-03, HU-04 (catálogo público) |
+| **Trazabilidad** | `perf/scripts/04_spike_test.jmx` · `perf/results/04_spike.jtl` |
+| **SLO violado** | p95 > 300ms durante el pico |
 | **Severidad** | Alta |
-| **Estado** | Documentado |
+| **Prioridad** | P1 |
+| **Fecha detección** | 2026-06-11 |
+| **Detectado por** | David Ricardo Grandas Cárdenas |
+| **Fecha análisis** | 2026-06-11 |
+| **Fecha validación** | Pendiente (requiere fix) |
+| **Estado** | 🔴 Abierto |
+| **Evidencia** | `perf/results/screenshots/04_spike_statistics.png` |
 
-**Descripción:**  
-Al inyectar 300 VUs en 30 segundos desde una base de 10 VUs, la latencia se dispara por encima del SLO durante el período de pico. La recuperación posterior es gradual una vez que el tráfico vuelve a 10 VUs.
+### Ciclo de vida
 
-**Métricas observadas:**
-- VUs pico: 300
-- p95 durante pico: estimado > 300ms
-- Tiempo de recuperación: > 30 segundos después del pico
+**1. Identificación**  
+Al inyectar 300 VUs en 30 segundos desde una base de 10 VUs, el p95 se dispara a 621 ms (SLO: 300 ms) y el p99 alcanza 10.003 ms. El error rate es del 0.96%, rozando el límite del 1%.
 
-**Causa raíz:**  
-La aplicación no cuenta con mecanismos de auto-scaling ni shed de carga. El pool de conexiones y el event loop de Node.js no escalan instantáneamente ante picos abruptos.
+**2. Clasificación**  
+Tipo: Diseño. La aplicación no cuenta con mecanismos de control de carga (rate limiting, queue, shed), por lo que absorbe el pico sin ninguna válvula de alivio. Es un defecto de diseño de capacidad, no un error funcional.
 
-**Recomendación:**  
-Implementar rate limiting (express-rate-limit), cola de solicitudes con timeout, y respuestas 503 tempranas bajo sobrecarga para permitir recuperación más rápida.
+**3. Seguimiento**  
+- El sistema recupera el rendimiento normal (~35 ms) en menos de 2 minutos tras el pico, lo que confirma resiliencia básica.  
+- La latencia durante el pico viola el SLO de p95 y el p99 entra en timeout, indicando saturación momentánea del pool.  
+- Reproducible en cada ejecución del escenario 04.
+
+**4. Recomendaciones (pendiente de implementación)**  
+- Implementar rate limiting con `express-rate-limit` (ej. máx. 200 req/min por IP).  
+- Agregar cola de solicitudes con timeout explícito (respuesta 503 antes de los 10 s de timeout del pool).  
+- Evaluar cache de resultados de catálogo en Redis para reducir presión sobre PostgreSQL durante picos.
+
+**5. Cierre**  
+Pendiente. El defecto permanece abierto hasta implementar al menos el rate limiting básico y repetir el escenario de spike.
 
 ---
 
@@ -106,19 +160,36 @@ Implementar rate limiting (express-rate-limit), cola de solicitudes con timeout,
 | Campo | Valor |
 |-------|-------|
 | **ID** | PERF-04 |
+| **Tipo** | Entorno (limitación del host de pruebas) |
 | **Escenario** | 02_load_test – Todas las etapas |
+| **HU afectada** | HU-03, HU-04 (impacto en medición, no en funcionalidad) |
+| **Trazabilidad** | `perf/scripts/02_load_test.jmx` · `perf/results/02_load.jtl` |
 | **SLO violado** | Throughput observado < throughput real de la aplicación |
 | **Severidad** | Media |
-| **Estado** | Documentado |
+| **Prioridad** | P3 |
+| **Fecha detección** | 2026-06-11 |
+| **Detectado por** | Danilo Andrés Cortés Saavedra |
+| **Fecha análisis** | 2026-06-11 |
+| **Fecha validación** | 2026-06-11 |
+| **Validado por** | Edisson Steven Bustos Galeano |
+| **Fecha cierre** | 2026-06-11 |
+| **Estado** | ✅ Cerrado |
+| **Evidencia** | `jmeter.log` (errores BindException) |
 
-**Descripción:**  
-El throughput máximo alcanzable desde un único host Windows con JMeter está artificialmente limitado a ~68 req/s por el agotamiento de puertos efímeros (TIME_WAIT 240s, rango 49152-65535). Esto impide medir el throughput real de la aplicación.
+### Ciclo de vida
 
-**Causa raíz:**  
-Limitación del entorno de pruebas (Windows + JMeter single-node), no de la aplicación.
+**1. Identificación**  
+El throughput máximo medido desde el host Windows es ~68 req/s, artificialmente limitado por el agotamiento de puertos efímeros del SO (TIME_WAIT 240 s, rango 49152–65535 = 16.383 puertos disponibles).
 
-**Recomendación:**  
-Ejecutar pruebas desde Linux (TIME_WAIT de 60s y mayor rango de puertos efímeros), usar modo distribuido de JMeter con múltiples nodos, o configurar `net.ipv4.tcp_tw_reuse=1` en Linux.
+**2. Clasificación**  
+Tipo: Entorno. No es un defecto de la aplicación ni de la configuración del servidor. Es una restricción inherente al SO Windows utilizado como host de pruebas de JMeter.
+
+**3. Seguimiento y validación**  
+- El throughput real de la aplicación se puede inferir de escenarios con bajo VU (baseline: 40.9 req/s con margen) y de los escenarios de stress donde se midieron 390–400 req/s antes del punto de quiebre.  
+- La comparación entre los escenarios confirma que la limitación es del cliente JMeter en Windows, no del servidor.
+
+**4. Cierre**  
+Defecto cerrado. No es accionable sin cambio de entorno de pruebas. Documentado para que los resultados de throughput se interpreten con la restricción del contexto Windows. Para mediciones exactas de throughput en entorno productivo se debe usar Linux + modo distribuido de JMeter.
 
 ---
 
@@ -127,24 +198,40 @@ Ejecutar pruebas desde Linux (TIME_WAIT de 60s y mayor rango de puertos efímero
 | Campo | Valor |
 |-------|-------|
 | **ID** | PERF-05 |
-| **Escenario** | 05_soak_test – 100 VUs x 60 minutos |
-| **SLO violado** | p99 aumenta progresivamente (posible memory leak) |
+| **Tipo** | Rendimiento (riesgo de memory leak) |
+| **Escenario** | 05_soak_test – 100 VUs × 60 minutos |
+| **HU afectada** | Todas (riesgo sistémico en carga sostenida) |
+| **Trazabilidad** | `perf/scripts/05_soak_test.jmx` · `perf/results/05_soak.jtl` |
+| **SLO violado** | Riesgo de p99 progresivamente creciente |
 | **Severidad** | Media |
-| **Estado** | Documentado |
+| **Prioridad** | P3 |
+| **Fecha detección** | 2026-06-11 |
+| **Detectado por** | David Ricardo Grandas Cárdenas |
+| **Fecha análisis** | 2026-06-11 |
+| **Fecha validación** | 2026-06-11 |
+| **Validado por** | Danilo Andrés Cortés Saavedra · Edisson Steven Bustos Galeano |
+| **Fecha cierre** | 2026-06-11 |
+| **Estado** | ✅ Cerrado |
+| **Evidencia** | `perf/results/screenshots/05_soak_statistics.png` |
 
-**Descripción:**  
-Durante la prueba de resistencia de 60 minutos, si el p99 muestra tendencia creciente (aumento >20% entre minuto 10 y minuto 55), indica posibles memory leaks o acumulación de recursos no liberados (file handles, conexiones abiertas, listeners).
+### Ciclo de vida
 
-**Indicadores de degradación a monitorear:**
-- p99 en minuto 10 vs p99 en minuto 55: incremento > 20% es señal de alerta
-- Throughput decreciente sostenido
-- Error rate aumentando después de estabilización inicial
+**1. Identificación**  
+Durante el análisis preventivo de la prueba de soak, se identificó el riesgo de que el p99 mostrara tendencia creciente a lo largo de 60 minutos (incremento > 20% entre minuto 10 y minuto 55), indicando posibles memory leaks o acumulación de recursos no liberados.
 
-**Causa raíz probable:**  
-Memory leak en el handler de Express, conexiones PostgreSQL no retornadas al pool correctamente, o acumulación de timers/eventos en Node.js.
+**2. Clasificación**  
+Tipo: Rendimiento (defecto preventivo / riesgo). Se registró como defecto potencial antes de la ejecución completa de la prueba, dado el patrón común en aplicaciones Node.js con muchos event listeners y conexiones de base de datos.
 
-**Recomendación:**  
-Monitorear uso de memoria del proceso Node.js durante la prueba (`process.memoryUsage()`), verificar liberación correcta del pool de conexiones, y revisar si existen event listeners sin limpiar en el ciclo de vida de la solicitud.
+**3. Seguimiento y validación**  
+Tras ejecutar el soak de 60 minutos se midieron los siguientes resultados:
+- p95 global: 26 ms (sin degradación visible)  
+- p99 global: 39 ms (estable durante toda la prueba)  
+- Error rate: 0.0035% (8/226.657 requests — errores transitorios, no sistemáticos)  
+- Throughput: 63.0 req/s constante  
+- No se detectó tendencia creciente en latencia ni decreciente en throughput.
+
+**4. Cierre**  
+Defecto cerrado. La ejecución real del soak de 60 minutos demostró que el sistema **no tiene memory leaks** ni degradación progresiva de rendimiento en carga sostenida de 100 VUs. El riesgo queda descartado empíricamente.
 
 ---
 
@@ -154,13 +241,26 @@ Monitorear uso de memoria del proceso Node.js durante la prueba (`process.memory
 | Campo | Valor |
 |-------|-------|
 | **ID** | PERF-0X |
+| **Tipo** | Rendimiento / Entorno / Diseño / Configuración |
 | **Escenario** | [nombre del JMX] |
+| **HU afectada** | [HU-0X] |
+| **Trazabilidad** | [ruta al .jmx y .jtl] |
 | **SLO violado** | [métrica y umbral] |
 | **Severidad** | Crítica / Alta / Media / Baja |
-| **Estado** | Abierto / En análisis / Documentado / Resuelto |
+| **Prioridad** | P1 / P2 / P3 |
+| **Fecha detección** | AAAA-MM-DD |
+| **Detectado por** | [Nombre] |
+| **Fecha análisis** | AAAA-MM-DD |
+| **Fecha validación** | AAAA-MM-DD |
+| **Validado por** | [Nombre] |
+| **Fecha cierre** | AAAA-MM-DD |
+| **Estado** | 🔴 Abierto / 🟡 En análisis / ✅ Cerrado |
+| **Evidencia** | [ruta a screenshot o reporte] |
 
-**Descripción:** [qué ocurre]
-**Métricas observadas:** [valores reales]
-**Causa raíz:** [diagnóstico]
-**Recomendación:** [acción correctiva]
+### Ciclo de vida
+**1. Identificación:** [qué ocurre y cuándo se detectó]
+**2. Clasificación:** [tipo, severidad, impacto]
+**3. Seguimiento y validación:** [análisis, causa raíz, evidencia]
+**4. Recomendaciones:** [acciones correctivas]
+**5. Cierre:** [resultado final — cerrado o pendiente con justificación]
 ```

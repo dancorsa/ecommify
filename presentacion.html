@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ecommify — Testing & Arquitectura</title>
+<style>
+  :root {
+    --primary: #6C63FF;
+    --secondary: #FF6584;
+    --accent: #43D9AD;
+    --dark: #0D1117;
+    --dark2: #161B22;
+    --dark3: #21262D;
+    --border: #30363D;
+    --text: #E6EDF3;
+    --text2: #8B949E;
+    --green: #3FB950;
+    --yellow: #D29922;
+    --red: #F85149;
+    --blue: #58A6FF;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* ─── PROGRESS BAR ─── */
+  #progress-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    transition: width .4s ease;
+    z-index: 100;
+  }
+
+  /* ─── SLIDE CONTAINER ─── */
+  .deck {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 60px 80px;
+    opacity: 0;
+    transform: translateX(60px);
+    pointer-events: none;
+    transition: opacity .45s ease, transform .45s ease;
+  }
+
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: all;
+  }
+
+  .slide.exit-left {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+
+  /* ─── SLIDE HEADER ─── */
+  .slide-tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--primary);
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-size: clamp(2.2rem, 4vw, 3.4rem);
+    font-weight: 800;
+    line-height: 1.1;
+    text-align: center;
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 3vw, 2.2rem);
+    font-weight: 700;
+    margin-bottom: 32px;
+    text-align: center;
+  }
+
+  h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    color: var(--text2);
+    text-align: center;
+    margin-top: 16px;
+    max-width: 700px;
+    line-height: 1.6;
+  }
+
+  /* ─── GRADIENT TEXT ─── */
+  .grad {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ─── CARDS GRID ─── */
+  .grid { display: grid; gap: 20px; width: 100%; }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+  .card {
+    background: var(--dark2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    transition: border-color .3s;
+  }
+
+  .card:hover { border-color: var(--primary); }
+
+  .card-icon {
+    font-size: 2rem;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .card h3 { color: var(--text); font-size: 0.95rem; margin-bottom: 6px; }
+  .card p { font-size: 0.82rem; color: var(--text2); line-height: 1.5; }
+
+  /* ─── TECH BADGE ─── */
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin: 4px;
+  }
+
+  .badge-purple { background: rgba(108,99,255,.2); color: var(--primary); border: 1px solid rgba(108,99,255,.4); }
+  .badge-green  { background: rgba(63,185,80,.15); color: var(--green);   border: 1px solid rgba(63,185,80,.3); }
+  .badge-blue   { background: rgba(88,166,255,.15); color: var(--blue);   border: 1px solid rgba(88,166,255,.3); }
+  .badge-red    { background: rgba(248,81,73,.15);  color: var(--red);    border: 1px solid rgba(248,81,73,.3); }
+  .badge-yellow { background: rgba(210,153,34,.15); color: var(--yellow); border: 1px solid rgba(210,153,34,.3); }
+  .badge-teal   { background: rgba(67,217,173,.15); color: var(--accent); border: 1px solid rgba(67,217,173,.3); }
+
+  /* ─── TABLE ─── */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .tbl th {
+    background: var(--dark3);
+    color: var(--text2);
+    font-weight: 600;
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 0.75rem;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  .tbl td {
+    padding: 9px 14px;
+    border-bottom: 1px solid rgba(48,54,61,.6);
+    color: var(--text);
+  }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tr:hover td { background: rgba(255,255,255,.03); }
+
+  .pass  { color: var(--green);  font-weight: 600; }
+  .warn  { color: var(--yellow); font-weight: 600; }
+  .fail  { color: var(--red);    font-weight: 600; }
+
+  /* ─── METRIC BOXES ─── */
+  .metric {
+    background: var(--dark2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+  .metric-value {
+    font-size: 2.4rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .metric-label { font-size: 0.78rem; color: var(--text2); letter-spacing: .5px; }
+
+  /* ─── ARCHITECTURE DIAGRAM ─── */
+  .arch-box {
+    border-radius: 10px;
+    padding: 14px 24px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.88rem;
+  }
+
+  .arch-arrow {
+    text-align: center;
+    color: var(--text2);
+    font-size: 1.4rem;
+    line-height: 1;
+    margin: 2px 0;
+  }
+
+  /* ─── CODE BLOCK ─── */
+  pre {
+    background: var(--dark3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-size: 0.78rem;
+    line-height: 1.7;
+    overflow-x: auto;
+    color: #cdd9e5;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+  }
+  .kw  { color: #ff7b72; }
+  .fn  { color: #d2a8ff; }
+  .str { color: #a5d6ff; }
+  .cm  { color: #8b949e; font-style: italic; }
+  .num { color: #79c0ff; }
+
+  /* ─── PROGRESS DOTS ─── */
+  #dots {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 50;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    cursor: pointer;
+    transition: all .3s;
+  }
+  .dot.on {
+    background: var(--primary);
+    transform: scale(1.35);
+  }
+
+  /* ─── NAV BUTTONS ─── */
+  #nav {
+    position: fixed;
+    bottom: 22px;
+    right: 36px;
+    display: flex;
+    gap: 12px;
+    z-index: 50;
+  }
+  .btn {
+    background: var(--dark2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all .2s;
+  }
+  .btn:hover { background: var(--primary); border-color: var(--primary); }
+
+  /* ─── SLIDE NUMBER ─── */
+  #slide-num {
+    position: fixed;
+    bottom: 28px;
+    left: 36px;
+    font-size: 0.78rem;
+    color: var(--text2);
+    font-weight: 600;
+    z-index: 50;
+  }
+
+  /* ─── TITLE SLIDE decoration ─── */
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(108,99,255,.15) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 30%, rgba(67,217,173,.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .logo-text {
+    font-size: clamp(3rem, 7vw, 5.5rem);
+    font-weight: 900;
+    letter-spacing: -2px;
+  }
+
+  .team-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--dark2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 8px 18px;
+    font-size: 0.82rem;
+    color: var(--text2);
+    margin-top: 10px;
+  }
+
+  /* ─── COVER STATS ─── */
+  .cover-stats {
+    display: flex;
+    gap: 32px;
+    margin-top: 40px;
+  }
+  .cstat {
+    text-align: center;
+  }
+  .cstat-n {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .cstat-l {
+    font-size: 0.75rem;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+
+  /* ─── COVERAGE BAR ─── */
+  .cov-row { margin-bottom: 16px; }
+  .cov-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    margin-bottom: 6px;
+    color: var(--text2);
+  }
+  .cov-label span:last-child { color: var(--green); font-weight: 700; }
+  .cov-track {
+    background: var(--dark3);
+    border-radius: 6px;
+    height: 10px;
+    overflow: hidden;
+  }
+  .cov-fill {
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    transition: width 1s ease;
+  }
+
+  /* ─── VERTICAL TIMELINE ─── */
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 10px; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--border);
+  }
+  .tl-item {
+    position: relative;
+    margin-bottom: 18px;
+  }
+  .tl-dot {
+    position: absolute;
+    left: -22px;
+    top: 4px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: 2px solid var(--dark);
+  }
+  .tl-title { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+  .tl-desc { font-size: 0.78rem; color: var(--text2); margin-top: 2px; line-height: 1.4; }
+
+  /* ─── SPLIT LAYOUT ─── */
+  .split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    width: 100%;
+    align-items: start;
+  }
+
+  /* ─── LIST ITEMS ─── */
+  .check-list { list-style: none; }
+  .check-list li {
+    padding: 8px 0;
+    font-size: 0.88rem;
+    color: var(--text2);
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    line-height: 1.5;
+  }
+  .check-list li::before {
+    content: '▸';
+    color: var(--accent);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .check-list li strong { color: var(--text); }
+
+  /* ─── CONCLUSION BOX ─── */
+  .quote-box {
+    background: linear-gradient(135deg, rgba(108,99,255,.1), rgba(67,217,173,.08));
+    border: 1px solid rgba(108,99,255,.3);
+    border-left: 4px solid var(--primary);
+    border-radius: 10px;
+    padding: 20px 24px;
+    font-size: 0.95rem;
+    color: var(--text);
+    line-height: 1.7;
+    font-style: italic;
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 900px) {
+    .slide { padding: 40px 32px; }
+    .grid-3 { grid-template-columns: repeat(2,1fr); }
+    .grid-4 { grid-template-columns: repeat(2,1fr); }
+    .split  { grid-template-columns: 1fr; gap: 20px; }
+    h1 { font-size: 2rem; }
+    h2 { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<div class="deck" id="deck">
+
+  <!-- ══════════════════════════════════════════════════
+       SLIDE 1 — PORTADA
+  ══════════════════════════════════════════════════ -->
+  <div class="slide active" id="s1">
+    <div class="hero-bg"></div>
+    <div class="slide-tag">Universidad de La Sabana · Maestría en Arquitectura de Software</div>
+    <div class="logo-text grad">ecommify</div>
+    <p class="subtitle">Plataforma e-commerce multi-vendor con arquitectura polyglot persistence<br>y estrategia integral de pruebas de software</p>
+    <div class="cover-stats">
+      <div class="cstat">
+        <div class="cstat-n">67</div>
+        <div class="cstat-l">Pruebas unitarias</div>
+      </div>
+      <div class="cstat">
+        <div class="cstat-n">6</div>
+        <div class="cstat-l">Escenarios JMeter</div>
+      </div>
+      <div class="cstat">
+        <div class="cstat-n">98.3%</div>
+        <div class="cstat-l">Cobertura de código</div>
+      </div>
+      <div class="cstat">
+        <div class="cstat-n">2</div>
+        <div class="cstat-l">Tipos de prueba</div>
+      </div>
+    </div>
+    <div style="margin-top:36px; display:flex; flex-direction:column; gap:8px; align-items:center;">
+      <div class="team-pill">👤 David Ricardo Grandas Cárdenas</div>
+      <div class="team-pill">👤 Danilo Andrés Cortés Saavedra</div>
+      <div class="team-pill">👤 Edisson Steven Bustos Galeano</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       SLIDE 2 — ¿QUÉ ES ECOMMIFY?
+  ══════════════════════════════════════════════════ -->
+  <div class="slide" id="s2">
+    <div class="slide-tag">01 — Introducción</div>
+    <h2>¿Qué es <span class="grad">Ecommify</span>?</h2>
+    <div class="grid grid-2" style="max-width:900px; width:100%;">
+      <div class="card">
+        <span class="card-icon">🛒</span>
+        <h3>Plataforma e-commerce multi-vendor</h3>
+        <p>Conecta compradores y vendedores de productos tecnológicos. Los vendedores gestionan su inventario, los compradores exploran catálogos, agregan al carrito y realizan pedidos.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">🎓</span>
+        <h3>Contexto académico</h3>
+        <p>Proyecto de Fundamentos de Testing en la Maestría en Arquitectura de Software. Dataset real: <strong>Brazilian E-Commerce (Olist)</strong> de Kaggle con datos de transacciones reales.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">🗄️</span>
+        <h3>Arquitectura Polyglot Persistence</h3>
+        <p>Dos bases de datos especializadas: <strong>PostgreSQL</strong> para transacciones ACID y <strong>MongoDB</strong> para catálogo, reseñas y comportamiento de usuario.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">🧪</span>
+        <h3>Estrategia de pruebas integral</h3>
+        <p>67 pruebas unitarias con TDD + 6 escenarios de rendimiento con JMeter. Todo integrado en un pipeline CI/CD con GitHub Actions.</p>
+      </div>
+    </div>
+    <div style="margin-top:24px; text-align:center;">
+      <span class="badge badge-purple">Node.js 20</span>
+      <span class="badge badge-blue">PostgreSQL 16</span>
+      <span class="badge badge-green">MongoDB 7</span>
+      <span class="badge badge-teal">React 18</span>
+      <span class="badge badge-yellow">Docker Compose</span>
+      <span class="badge badge-red">JMeter 5.4.3</span>
+      <span class="badge badge-purple">Jest 29.7</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       SLIDE 3 — ARQUITECTURA
+  ══════════════════════════════════════════════════ -->
+  <div class="slide" id="s3">
+    <div class="slide-tag">02 — Arquitectura</div>
+    <h2>Arquitectura del sistema</h2>
+    <div class="split" style="max-width:1000px; width:100%; align-items:center;">
+      <div>
+        <div class="arch-box" style="background:rgba(88,166,255,.12); border:1px solid rgba(88,166,255,.3); color:#58a6ff;">
+          🖥 Frontend · React 18 + Vite 5<br>
+          <small style="font-weight:400; color:var(--text2);">nginx · puerto 5173</small>
+        </div>
+        <div class="arch-arrow">↕</div>
+        <div class="arch-box" style="background:rgba(108,99,255,.12); border:1px solid rgba(108,99,255,.3); color:#a78bfa;">
+          ⚙️ Backend · Node.js 20 + Express 5<br>
+          <small style="font-weight:400; color:var(--text2);">JWT Auth · 13 endpoints REST · puerto 3000</small>
+        </div>
+        <div class="arch-arrow">↕&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↕</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="arch-box" style="background:rgba(63,185,80,.1); border:1px solid rgba(63,185,80,.3); color:#3fb950;">
+            🐘 PostgreSQL 16<br>
+            <small style="font-weight:400; color:var(--text2);">ACID · pedidos, pagos, inventario</small>
+          </div>
+          <div class="arch-box" style="background:rgba(67,217,173,.1); border:1px solid rgba(67,217,173,.3); color:#43d9ad;">
+            🍃 MongoDB 7<br>
+            <small style="font-weight:400; color:var(--text2);">Docs · catálogo, reseñas, analytics</small>
+          </div>
+        </div>
+        <div style="margin-top:12px; text-align:center; font-size:0.78rem; color:var(--text2);">
+          Orquestado con Docker Compose · health checks encadenados
+        </div>
+      </div>
+      <div>
+        <h3 style="margin-bottom:16px;">PostgreSQL avanzado</h3>
+        <ul class="check-list">
+          <li><strong>Particionamiento RANGE</strong> en tabla <code>orders</code> (trimestral)</li>
+          <li><strong>3 Vistas materializadas</strong> OLAP: ventas, segmentos, performance</li>
+          <li><strong>6 Extensiones:</strong> pg_trgm, btree_gin, uuid-ossp, pgcrypto…</li>
+          <li><strong>Triggers automáticos</strong> para auditoría y control de inventario</li>
+          <li><strong>pg_cron</strong> para mantenimiento programado</li>
+        </ul>
+        <h3 style="margin-top:24px; margin-bottom:16px;">MongoDB features</h3>
+        <ul class="check-list">
+          <li><strong>4 colecciones</strong> con validación JSON Schema</li>
+          <li><strong>Índices TTL</strong>: comportamiento (30d), analytics (90d)</li>
+          <li><strong>Full-text search</strong> sobre nombre y descripción</li>
+          <li><strong>Índices compuestos</strong> {categoría, precio, rating}</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       SLIDE 4 — ESTRUCTURA DEL PROYECTO
+  ══════════════════════════════════════════════════ -->
+  <div class="slide" id="s4">
+    <div class="slide-tag">03 — Estructura</div>
+    <h2>Estructura del proyecto</h2>
+    <div class="split" style="max-width:1000px; width:100%;">
+      <div>
+        <pre style="font-size:0.72rem; line-height:1.8;"><span class="kw">ecommify/</span>
+├── <span class="fn">backend/</span>
+│   ├── src/
+│   │   ├── app.js
+│   │   ├── db/         <span class="cm">← postgres + mongo</span>
+│   │   └── modules/    <span class="cm">← 6 módulos</span>
+│   │       ├── auth/
+│   │       ├── catalog/
+│   │       ├── cart/
+│   │       ├── checkout/
+│   │       ├── reviews/
+│   │       └── inventory/
+│   ├── <span class="str">tests/</span>         <span class="cm">← 67 pruebas Jest</span>
+│   ├── <span class="str">coverage/</span>      <span class="cm">← reporte HTML</span>
+│   └── <span class="str">docs/</span>          <span class="cm">← plan + trazabilidad</span>
+│
+├── <span class="fn">frontend/</span>      <span class="cm">← React 18 + Vite</span>
+├── <span class="fn">database/</span>
+│   ├── postgresql/ <span class="cm">← 7 scripts avanzados</span>
+│   └── mongodb/    <span class="cm">← schema + seed</span>
+│
+├── <span class="str">perf/</span>
+│   ├── scripts/    <span class="cm">← 6 .jmx JMeter</span>
+│   └── results/    <span class="cm">← .jtl + HTML reports</span>
+│
+└── <span class="fn">.github/workflows/</span> <span class="cm">← CI/CD</span></pre>
+      </div>
+      <div>
+        <h3 style="margin-bottom:14px;">Módulos del backend</h3>
+        <table class="tbl" style="margin-bottom:20px;">
+          <thead>
+            <tr><th>Módulo</th><th>Historia</th><th>Tests</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Auth</td><td>HU-01, HU-02</td><td>14</td></tr>
+            <tr><td>Catalog</td><td>HU-03, HU-04</td><td>9</td></tr>
+            <tr><td>Cart</td><td>HU-05</td><td>11</td></tr>
+            <tr><td>Checkout</td><td>HU-06</td><td>10</td></tr>
+            <tr><td>Reviews</td><td>HU-07</td><td>12</td></tr>
+            <tr><td>Inventory</td><td>HU-08</td><td>11</td></tr>
+          </tbody>
+        </table>
+        <h3 style="margin-bottom:14px;">Frameworks y herramientas</h3>
+        <div>
+          <span class="badge badge-purple">Jest 29.7</span>
+          <span class="badge badge-blue">Supertest</span>
+          <span class="badge badge-green">Express 5</span>
+          <span class="badge badge-teal">Mongoose</span>
+          <span class="badge badge-red">JMeter 5.4</span>
+          <span class="badge badge-yellow">GitHub Actions</span>
+          <span class="badge badge-purple">Vite 5</span>
+          <span class="badge badge-blue">Docker Compose</span>
+          <span class="badge badge-green">bcryptjs</span>
+          <span class="badge badge-teal">JWT</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       SLIDE 5 — TIPOS DE PRUEBAS
+  ══════════════════════════════════════════════════ -->
+  <div class="slide" id="s5">
+    <div class="slide-tag">04 — Tipos de pruebas</div>
+    <h2>Tipos de pruebas aplicadas</h2>
+    <div class="grid grid-2" style="max-width:960px; width:100%;">
+      <div class="card" style="border-color: rgba(108,99,255,.4);">
+        <span class="card-icon">🔬</span>
+        <h3 style="color:var(--primary); font-size:1.1rem;">Pruebas Unitarias (Jest)</h3>
+        <ul class="check-list" style="margin-top:10px;">
+          <li><strong>Metodología TDD</strong> — ciclo Rojo → Verde → Refactor</li>
+          <li><strong>Patrón AAA</strong> — Arrange, Act, Assert</li>
+          <li><strong>Nomenclatura BDD</strong> — Given / When / Then</li>
+          <li><strong>Mocking total</strong> — sin dependencias externas</li>
+          <li><strong>67 pruebas</strong> en 6 módulos, 8 historias de usuario</li>
+          <li><strong>Matriz de trazabilidad</strong> — UT-001 a UT-067</li>
+        </ul>
+      </div>
+      <div class="card" style="border-color: rgba(67,217,173,.4);">
+        <span class="card-icon">📊</span>
+        <h3 style="color:var(--accent); font-size:1.1rem;">Pruebas de Rendimiento (JMeter)</h3>
+        <ul class="check-list" style="margin-top:10px;">
+          <li><strong>Endpoint:</strong> GET /api/catalog/:id</li>
+          <li><strong>6 escenarios</strong> progresivos de carga</li>
+          <li><strong>SLOs definidos:</strong> p95&lt;300ms, errores&lt;1%</li>
+          <li><strong>Datos de prueba:</strong> CSV con 8 productos reales</li>
+          <li><strong>5 defectos</strong> registrados formalmente</li>
+          <li><strong>Reportes HTML</strong> interactivos por escenario</li>
+        </ul>
+      </div>
+    </div>
+    <div style="margin-top:24px; max-width:960px; width:100%;">
+      <h3 style="color:var(--text2); margin-bottom:12px; font-size:0.85rem; letter-spacing:1px; text-transform:uppercase;">SLOs definidos para rendimiento</h3>
+      <div class="grid grid-4">
+        <div class="metric">
+          <div class="metric-value" style="color:var(--blue);">300ms</div>
+          <div class="metric-label">p95 latencia máx</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value" style="color:var(--yellow);">800ms</div>
+          <div class="metric-label">p99 latencia máx</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value" style="color:var(--red);">&lt;1%</div>
+          <div class="metric-label">tasa de error</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value" style="color:var(--green);">&gt;10</div>
+          <div class="metric-label">req/s mínimo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       SLIDE 6 — PRUEBA UNITARIA (EJEMPLO)
+  ══════════════════════════════════════════════════ -->
+  <div class="slide" id="s6">
+    <div class="slide-tag">04b — Pruebas unitarias en detalle</div>
+    <h2>Anatomy of a test — patrón BDD + AAA</h2>
+    <div class="split" style="max-width:1000px; width:100%; align-items:start;">
+      <div>
+        <pre><span class="cm">// auth.service.test.js — Given/When/Then</span>
+
+<span class="fn">describe</span>(<span class="str">'AuthService'</span>, () =&gt; {
+
+  <span class="fn">describe</span>(<span class="str">'validateEmail'</span>, () =&gt; {
+
+    <span class="fn">test</span>(<span class="str">'Given valid email,
+      When validateEmail is called,
+      Then returns true'</span>, () =&gt; {
+
+      <span class="cm">// Arrange</span>
+      <span class="kw">const</span> email = <span class="str">'user@example.com'</span>;
+
+      <span class="cm">// Act</span>
+      <span class="kw">const</span> result = <span class="fn">validateEmail</span>(email);
+
+      <span class="cm">// Assert</span>
+      <span class="fn">expect</span>(result).<span class="fn">toBe</span>(<span class="kw">true</span>);
+    });
+
+  });
+});</pre>
+      </div>
+      <div>
+        <h3 style="margin-bottom:16px;">¿Por qué mocking total?</h3>
+        <ul class="check-list">
+          <li>Los tests corren en <strong>&lt;20 segundos</strong> sin levantar bases de datos</li>
+          <li>Cada test es <strong>determinístico</strong> — mismo input, mismo output siempre</li>
+          <li>Permite correr en <strong>CI/CD sin infraestructura</strong> costosa</li>
+          <li>Fuerza a <strong>inyectar dependencias</strong> — mejor diseño de código</li>
+        </ul>
+        <h3 style="margin-top:24px; margin-bottom:12px;">Estructura del test en jest.config.js</h3>
+        <pre style="font-size:0.72rem;"><span class="kw">coverageThreshold</span>: {
+  global: {
+    branches:   <span class="num">75</span>,
+    functions:  <span class="num">75</span>,
+    lines:      <span class="num">75</span>,
+    statements: <span class="num">75</span>
+  }
+}</pre>
+        <div style="margin-top:16px; font-size:0.8rem; color:var(--text2);">
+          Umbrales mínimos del 75% — el equipo superó <strong>98.3%</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       SLIDE 7 — ESCENARIOS JMETER
+  ══════════════════════════════════════════════════ -->
+  <div class="slide" id="s7">
+    <div class="slide-tag">04c — Pruebas de rendimiento en detalle</div>
+    <h2>6 Escenarios JMeter — estrategia progresiva</h2>
+    <div style="max-width:960px; width:100%;">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Escenario</th>
+            <th>Tipo</th>
+            <th>Configuración de VUs</th>
+            <th>Duración</th>
+            <th>Objetivo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-blue">01</span></td>
+            <td><strong>Baseline</strong></td>
+            <td>Referencia</td>
+            <td>10 VUs · pacing 200ms</td>
+            <td>5 min</td>
+            <td>Métricas base sin presión</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-purple">02</span></td>
+            <td><strong>Load</strong></td>
+            <td>Carga progresiva</td>
+            <td>50 VUs (5min) → 100 VUs (2min)</td>
+            <td>7 min</td>
+            <td>Comportamiento bajo carga normal</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-red">03</span></td>
+            <td><strong>Stress</strong></td>
+            <td>Límite del sistema</td>
+            <td>200 → 400 → 600 VUs</td>
+            <td>9 min</td>
+            <td>Encontrar el punto de quiebre</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-yellow">04</span></td>
+            <td><strong>Spike</strong></td>
+            <td>Tráfico flash</td>
+            <td>10 → 300 → 10 VUs en segundos</td>
+            <td>6 min</td>
+            <td>Recuperación ante picos repentinos</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-teal">05</span></td>
+            <td><strong>Soak</strong></td>
+            <td>Carga sostenida</td>
+            <td>100 VUs × 60 min</td>
+            <td>60 min</td>
+            <td>Memory leaks y degradación lenta</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-green">06</span></td>
+            <td><strong>Regression</strong></td>
+            <td>Verificación final</td>
+            <td>10 VUs · idéntico al 01</td>
+            <td>5 min</td>
+            <td>Confirmar sin degradación vs baseline</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:20px; display:grid; grid-template-columns: repeat(4,1fr); gap:12px;">
+        <div class="metric">
+          <div class="metric-value" style="color:var(--blue);">148 min</div>
+          <div class="metric-label">Tiempo total ejecución</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value" style="color:var(--accent);">~150k</div>
+          <div class="metric-label">Requests ejecutadas</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value" style="color:var(--yellow);">5</div>
+          <div class="metric-label">Defectos registrados</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value" style="color:var(--green);">6</div>
+          <div class="metric-label">Reportes HTML generados</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       SLIDE 8 — RESULTADOS UNITARIOS
+  ══════════════════════════════════════════════════ -->
+  <div class="slide" id="s8">
+    <div class="slide-tag">05a — Resultados de pruebas unitarias</div>
+    <h2>Resultados de cobertura de código</h2>
+    <div class="split" style="max-width:960px; width:100%;">
+      <div>
+        <div style="background:var(--dark2); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:20px; font-family:monospace; font-size:0.8rem; color:#3fb950;">
+          <div style="color:var(--text2); margin-bottom:8px;">$ npm test -- --coverage</div>
+          <div style="color:var(--green);">Test Suites: 6 passed, 6 total</div>
+          <div style="color:var(--green);">Tests:       67 passed, 67 total</div>
+          <div style="color:var(--text2);">Snapshots:   0 total</div>
+          <div style="color:var(--blue);">Time:        ~20 seconds</div>
+          <div style="margin-top:8px; color:var(--green);">✓ All thresholds met</div>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>Módulo</th><th>Tests</th><th>Stmts</th><th>Branch</th></tr></thead>
+          <tbody>
+            <tr><td>Auth</td><td>14</td><td class="warn">93.3%</td><td class="warn">87.5%</td></tr>
+            <tr><td>Catalog</td><td>9</td><td class="pass">100%</td><td class="warn">90.9%</td></tr>
+            <tr><td>Cart</td><td>11</td><td class="pass">100%</td><td class="warn">75%</td></tr>
+            <tr><td>Checkout</td><td>10</td><td class="pass">100%</td><td class="warn">88.9%</td></tr>
+            <tr><td>Reviews</td><td>12</td><td class="pass">100%</td><td class="pass">100%</td></tr>
+            <tr><td>Inventory</td><td>11</td><td class="pass">100%</td><td class="pass">100%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h3 style="margin-bottom:20px;">Cobertura global</h3>
+        <div class="cov-row">
+          <div class="cov-label"><span>Statements</span><span>98.3%</span></div>
+          <div class="cov-track"><div class="cov-fill" style="width:98.3%"></div></div>
+        </div>
+        <div class="cov-row">
+          <div class="cov-label"><span>Branches</span><span>89.28%</span></div>
+          <div class="cov-track"><div class="cov-fill" style="width:89.28%"></div></div>
+        </div>
+        <div class="cov-row">
+          <div class="cov-label"><span>Functions</span><span>100%</span></div>
+          <div class="cov-track"><div class="cov-fill" style="width:100%"></div></div>
+        </div>
+        <div class="cov-row">
+          <div class="cov-label"><span>Lines</span><span>100%</span></div>
+          <div class="cov-track"><div class="cov-fill" style="width:100%"></div></div>
+        </div>
+        <div style="margin-top:20px; padding:14px; background:rgba(63,185,80,.08); border:1px solid rgba(63,185,80,.2); border-radius:8px; font-size:0.82rem; color:var(--text2);">
+          <strong style="color:var(--green);">✅ Umbral mínimo: 75%</strong><br>
+          El equipo superó todos los umbrales. El único módulo por debajo del 95% en statements es <em>auth</em> (93.3%) por manejo de casos edge en validación de contraseñas.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       SLIDE 9 — RESULTADOS RENDIMIENTO
+  ══════════════════════════════════════════════════ -->
+  <div class="slide" id="s9">
+    <div class="slide-tag">05b — Resultados de rendimiento</div>
+    <h2>Resultados JMeter — comparativa de escenarios</h2>
+    <div style="max-width:980px; width:100%;">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Escenario</th>
+            <th>VUs</th>
+            <th>p95 (ms)</th>
+            <th>p99 (ms)</th>
+            <th>Throughput (req/s)</th>
+            <th>Error%</th>
+            <th>SLO</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>01 Baseline</td>
+            <td>10</td>
+            <td class="pass">62</td>
+            <td class="pass">178</td>
+            <td>40.9</td>
+            <td class="pass">0.00%</td>
+            <td class="pass">✅ PASS</td>
+          </tr>
+          <tr>
+            <td>02 Load (50 VUs)</td>
+            <td>50</td>
+            <td class="pass">57</td>
+            <td class="pass">100</td>
+            <td>176.5</td>
+            <td class="fail">34.68%*</td>
+            <td class="fail">❌ TCP Win</td>
+          </tr>
+          <tr>
+            <td>02 Load (100 VUs)</td>
+            <td>100</td>
+            <td class="pass">187</td>
+            <td class="pass">246</td>
+            <td>336.9</td>
+            <td class="fail">62.4%*</td>
+            <td class="fail">❌ TCP Win</td>
+          </tr>
+          <tr>
+            <td>03 Stress (200 VUs)</td>
+            <td>200</td>
+            <td class="fail">651</td>
+            <td class="fail">754</td>
+            <td>401.7</td>
+            <td class="pass">0.00%</td>
+            <td class="warn">⚠️ p95 alto</td>
+          </tr>
+          <tr>
+            <td>03 Stress (400 VUs)</td>
+            <td>400</td>
+            <td class="fail">10.010</td>
+            <td class="fail">10.016</td>
+            <td>390.5</td>
+            <td class="fail">5.12%</td>
+            <td class="fail">❌ TIMEOUT</td>
+          </tr>
+          <tr>
+            <td>04 Spike (pico 300)</td>
+            <td>300</td>
+            <td class="fail">621</td>
+            <td class="fail">10.003</td>
+            <td>434.9</td>
+            <td class="pass">0.96%</td>
+            <td class="warn">⚠️ Límite</td>
+          </tr>
+          <tr>
+            <td>04 Spike (recuperación)</td>
+            <td>10</td>
+            <td class="pass">35</td>
+            <td class="pass">43</td>
+            <td>385.7</td>
+            <td class="pass">0.00%</td>
+            <td class="pass">✅ PASS</td>
+          </tr>
+          <tr style="background:rgba(67,217,173,.04);">
+            <td><strong>05 Soak 60 min</strong></td>
+            <td>100</td>
+            <td class="pass"><strong>26</strong></td>
+            <td class="pass"><strong>39</strong></td>
+            <td>63.0</td>
+            <td class="pass"><strong>0.004%</strong></td>
+            <td class="pass"><strong>✅ PASS</strong></td>
+          </tr>
+          <tr>
+            <td><strong>06 Regression</strong></td>
+            <td>10</td>
+            <td class="pass"><strong>25</strong></td>
+            <td class="pass"><strong>42</strong></td>
+            <td>43.4</td>
+            <td class="pass"><strong>0.008%</strong></td>
+            <td class="pass"><strong>✅ PASS</strong></td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:10px; font-size:0.75rem; color:var(--text2);">
+        * Errores de Load (50-100 VUs) son <strong>BindException TCP de Windows</strong> (agotamiento de puertos efímeros del SO), no errores de la aplicación.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       SLIDE 10 — HALLAZGOS CLAVE
+  ══════════════════════════════════════════════════ -->
+  <div class="slide" id="s10">
+    <div class="slide-tag">05c — Hallazgos de rendimiento</div>
+    <h2>Hallazgos y cuellos de botella</h2>
+    <div class="grid grid-2" style="max-width:960px; width:100%;">
+      <div class="card" style="border-color:rgba(63,185,80,.3);">
+        <span class="card-icon">✅</span>
+        <h3 style="color:var(--green);">Fortalezas encontradas</h3>
+        <ul class="check-list" style="margin-top:8px;">
+          <li>Sistema <strong>sólido hasta 100 VUs</strong> — todos los SLOs cumplidos</li>
+          <li>Soak de 60 minutos: <strong>sin memory leaks</strong>, p95 estable en 26ms</li>
+          <li>Recuperación tras spike de 300 VUs en <strong>menos de 2 minutos</strong></li>
+          <li>Prueba de regresión <strong>60% más rápida</strong> que el baseline (25ms vs 62ms)</li>
+        </ul>
+      </div>
+      <div class="card" style="border-color:rgba(248,81,73,.3);">
+        <span class="card-icon">⚠️</span>
+        <h3 style="color:var(--red);">Cuellos de botella</h3>
+        <ul class="check-list" style="margin-top:8px;">
+          <li><strong>PostgreSQL connection pool</strong> — se satura a 400 VUs, timeouts de 10s</li>
+          <li><strong>Node.js event loop</strong> — single-thread con alta I/O genera latencia lineal +200 VUs</li>
+          <li><strong>Windows TCP limit</strong> — puertos efímeros 49152-65535 = solo 16K conexiones disponibles</li>
+        </ul>
+      </div>
+      <div class="card" style="border-color:rgba(210,153,34,.3);">
+        <span class="card-icon">🐛</span>
+        <h3 style="color:var(--yellow);">Defectos registrados (PERF-01 a 05)</h3>
+        <table class="tbl" style="margin-top:8px;">
+          <thead><tr><th>ID</th><th>Escenario</th><th>Severidad</th></tr></thead>
+          <tbody>
+            <tr><td>PERF-01</td><td>Load 100 VUs</td><td class="fail">High</td></tr>
+            <tr><td>PERF-02</td><td>Stress 600 VUs</td><td class="fail">Critical</td></tr>
+            <tr><td>PERF-03</td><td>Spike 300 VUs</td><td class="fail">High</td></tr>
+            <tr><td>PERF-04</td><td>Load general</td><td class="warn">Medium</td></tr>
+            <tr><td>PERF-05</td><td>Soak 60 min</td><td class="warn">Medium</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card" style="border-color:rgba(108,99,255,.3);">
+        <span class="card-icon">💡</span>
+        <h3 style="color:var(--primary);">Recomendaciones de mejora</h3>
+        <ul class="check-list" style="margin-top:8px;">
+          <li>Aumentar <strong>pool.max</strong> de PostgreSQL a 50-100 conexiones</li>
+          <li>Implementar <strong>clustering Node.js</strong> o usar PM2 para multi-core</li>
+          <li>Agregar <strong>Redis</strong> como cache L2 para catálogo de productos</li>
+          <li>Configurar <strong>TCP ephemeral port range</strong> en Windows o usar Linux para tests</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       SLIDE 11 — CI/CD
+  ══════════════════════════════════════════════════ -->
+  <div class="slide" id="s11">
+    <div class="slide-tag">05d — Pipeline CI/CD</div>
+    <h2>Pipeline de integración continua</h2>
+    <div class="split" style="max-width:960px; width:100%; align-items:start;">
+      <div>
+        <pre style="font-size:0.71rem;"><span class="kw">name:</span> <span class="str">CI Pipeline - Ecommify</span>
+
+<span class="kw">on:</span>
+  <span class="kw">push:</span>
+    <span class="kw">branches:</span> [<span class="str">"main"</span>, <span class="str">"master"</span>]
+  <span class="kw">pull_request:</span>
+    <span class="kw">branches:</span> [<span class="str">"main"</span>, <span class="str">"master"</span>]
+
+<span class="kw">jobs:</span>
+  <span class="fn">test:</span>
+    <span class="kw">runs-on:</span> ubuntu-latest
+    <span class="kw">steps:</span>
+      - <span class="fn">uses:</span> actions/checkout@v4
+      - <span class="fn">uses:</span> actions/setup-node@v4
+        <span class="kw">with:</span>
+          <span class="kw">node-version:</span> <span class="str">'18'</span>
+          <span class="kw">cache:</span> <span class="str">'npm'</span>
+
+      - <span class="kw">run:</span> npm install
+      - <span class="kw">run:</span> npm test -- <span class="str">--coverage --forceExit</span>
+
+      - <span class="fn">uses:</span> actions/upload-artifact@v4
+        <span class="kw">with:</span>
+          <span class="kw">name:</span> coverage-report
+          <span class="kw">retention-days:</span> <span class="num">14</span></pre>
+      </div>
+      <div>
+        <h3 style="margin-bottom:16px;">Flujo del pipeline</h3>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot" style="background:var(--blue)"></div>
+            <div class="tl-title">🔀 Push / Pull Request a main</div>
+            <div class="tl-desc">Disparador automático en cada cambio</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot" style="background:var(--purple)"></div>
+            <div class="tl-title">📦 Checkout + Node.js 18</div>
+            <div class="tl-desc">Instala dependencias desde package-lock.json con caché</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot" style="background:var(--yellow)"></div>
+            <div class="tl-title">🧪 67 tests + cobertura</div>
+            <div class="tl-desc">npm test --coverage --forceExit · ~2-3 minutos</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot" style="background:var(--red)"></div>
+            <div class="tl-title">🚫 Falla si coverage &lt; 75%</div>
+            <div class="tl-desc">Thresholds en jest.config.js bloquean el merge</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot" style="background:var(--green)"></div>
+            <div class="tl-title">📤 Artifact: reporte HTML</div>
+            <div class="tl-desc">Coverage report disponible 14 días en GitHub Actions</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       SLIDE 12 — CONCLUSIONES
+  ══════════════════════════════════════════════════ -->
+  <div class="slide" id="s12">
+    <div class="slide-tag">06 — Conclusiones</div>
+    <h2>Aprendizajes del proyecto</h2>
+    <div class="grid grid-2" style="max-width:960px; width:100%;">
+      <div>
+        <h3 style="margin-bottom:12px; font-size:0.85rem; letter-spacing:1px; text-transform:uppercase; color:var(--primary);">Sobre pruebas unitarias</h3>
+        <ul class="check-list">
+          <li><strong>TDD desde el inicio</strong> fuerza a diseñar código modular y testeable — los módulos bien separados alcanzaron 100% de cobertura con naturalidad</li>
+          <li><strong>Mocking total</strong> permite 67 tests en 20s sin levantar infraestructura — crítico para CI/CD ágil</li>
+          <li>La <strong>matriz de trazabilidad</strong> conecta cada fallo con su historia de usuario, reduciendo el tiempo de diagnóstico</li>
+          <li>El patrón <strong>BDD (Given/When/Then)</strong> hace los tests legibles para stakeholders no técnicos</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="margin-bottom:12px; font-size:0.85rem; letter-spacing:1px; text-transform:uppercase; color:var(--accent);">Sobre pruebas de rendimiento</h3>
+        <ul class="check-list">
+          <li>El <strong>baseline es la prueba más importante</strong> — sin él no hay referencia para medir degradación</li>
+          <li><strong>Definir SLOs antes de probar</strong>, no después — definirlos a posteriori sesga el criterio de aceptación</li>
+          <li>El <strong>soak test (60 min)</strong> reveló lo que ninguna otra prueba mostraría: ausencia de memory leaks</li>
+          <li>Los <strong>cuellos de botella no siempre son el código</strong> — el connection pool y el SO fueron los límites reales</li>
+        </ul>
+      </div>
+    </div>
+    <div style="max-width:960px; width:100%; margin-top:24px;">
+      <div class="quote-box">
+        "Ningún tipo de prueba es suficiente por sí solo. Las pruebas unitarias validan la <strong>corrección</strong> del código; las pruebas de rendimiento validan la <strong>capacidad operacional</strong>. Juntas, dan confianza real para llevar el sistema a producción."
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       SLIDE 13 — CIERRE
+  ══════════════════════════════════════════════════ -->
+  <div class="slide" id="s13">
+    <div class="hero-bg"></div>
+    <div class="logo-text grad" style="font-size:clamp(3rem,6vw,5rem);">ecommify</div>
+    <p class="subtitle" style="margin-top:12px;">
+      Arquitectura polyglot persistence + estrategia integral de pruebas
+    </p>
+    <div style="margin-top:40px; display:grid; grid-template-columns:repeat(4,1fr); gap:20px; max-width:700px;">
+      <div class="metric">
+        <div class="metric-value" style="color:var(--primary);">67</div>
+        <div class="metric-label">Pruebas unitarias<br>100% pass</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value" style="color:var(--accent);">98.3%</div>
+        <div class="metric-label">Cobertura de<br>código</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value" style="color:var(--yellow);">6</div>
+        <div class="metric-label">Escenarios de<br>rendimiento</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value" style="color:var(--green);">0ms</div>
+        <div class="metric-label">Degradación<br>en soak</div>
+      </div>
+    </div>
+    <div style="margin-top:40px; display:flex; flex-direction:column; gap:8px; align-items:center;">
+      <div style="font-size:0.82rem; color:var(--text2); margin-bottom:4px;">Equipo</div>
+      <div class="team-pill">👤 David Ricardo Grandas Cárdenas</div>
+      <div class="team-pill">👤 Danilo Andrés Cortés Saavedra</div>
+      <div class="team-pill">👤 Edisson Steven Bustos Galeano</div>
+    </div>
+    <div style="margin-top:24px; font-size:0.78rem; color:var(--text2);">
+      Universidad de La Sabana · Maestría en Arquitectura de Software · 2025
+    </div>
+  </div>
+
+</div><!-- end deck -->
+
+<!-- ─── NAVIGATION ─── -->
+<div id="slide-num">1 / 13</div>
+<div id="dots"></div>
+<div id="nav">
+  <button class="btn" id="prev-btn" onclick="navigate(-1)">← Anterior</button>
+  <button class="btn" id="next-btn" onclick="navigate(1)">Siguiente →</button>
+</div>
+
+<script>
+  const TOTAL = 13;
+  let current = 1;
+
+  const bar   = document.getElementById('progress-bar');
+  const num   = document.getElementById('slide-num');
+  const dots  = document.getElementById('dots');
+
+  // Build dots
+  for (let i = 1; i <= TOTAL; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 1 ? ' on' : '');
+    d.onclick = () => goTo(i);
+    dots.appendChild(d);
+  }
+
+  function goTo(n) {
+    if (n < 1 || n > TOTAL) return;
+    const prev = document.getElementById('s' + current);
+    prev.classList.remove('active');
+    prev.classList.add('exit-left');
+    setTimeout(() => prev.classList.remove('exit-left'), 450);
+
+    current = n;
+    const next = document.getElementById('s' + current);
+    next.classList.add('active');
+
+    // update UI
+    bar.style.width = ((current / TOTAL) * 100) + '%';
+    num.textContent = current + ' / ' + TOTAL;
+    document.querySelectorAll('.dot').forEach((d, i) => {
+      d.classList.toggle('on', i + 1 === current);
+    });
+  }
+
+  function navigate(dir) { goTo(current + dir); }
+
+  // Keyboard
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') navigate(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                    navigate(-1);
+    if (e.key === 'Home') goTo(1);
+    if (e.key === 'End')  goTo(TOTAL);
+  });
+
+  // Touch swipe
+  let touchX = 0;
+  document.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; });
+  document.addEventListener('touchend',   e => {
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 50) navigate(dx < 0 ? 1 : -1);
+  });
+
+  // Initial progress bar
+  bar.style.width = ((1 / TOTAL) * 100) + '%';
+</script>
+</body>
+</html>
